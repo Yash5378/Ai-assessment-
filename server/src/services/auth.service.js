@@ -5,11 +5,11 @@ const { hashPassword, verifyPassword } = require('../utils/password');
 const PUBLIC_USER_FIELDS = 'id, name, email, role, created_at AS "createdAt"';
 
 /**
- * Registers a candidate account. The role is fixed server-side — HR accounts
- * are provisioned via seeding only, so registration can never escalate
- * privileges.
+ * Registers an account as either HR (recruiter) or CANDIDATE. The role is
+ * whitelisted by the zod enum before it reaches this function, so nothing
+ * outside those two roles can ever be created.
  */
-async function register({ name, email, password }) {
+async function register({ name, email, password, role }) {
   const existing = await db.query('SELECT id FROM users WHERE email = $1', [email]);
   if (existing.rows.length > 0) {
     throw ApiError.conflict('An account with this email already exists');
@@ -18,9 +18,9 @@ async function register({ name, email, password }) {
   const passwordHash = await hashPassword(password);
   const result = await db.query(
     `INSERT INTO users (name, email, password_hash, role)
-     VALUES ($1, $2, $3, 'CANDIDATE')
+     VALUES ($1, $2, $3, $4)
      RETURNING ${PUBLIC_USER_FIELDS}`,
-    [name, email, passwordHash]
+    [name, email, passwordHash, role]
   );
   return result.rows[0];
 }

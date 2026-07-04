@@ -6,6 +6,11 @@ const { z } = require('zod');
  * backend remains the source of truth.
  */
 
+const ROLES = ['HR', 'CANDIDATE'];
+const EMPLOYMENT_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP'];
+const JOB_STATUSES = ['OPEN', 'CLOSED'];
+const REVIEWABLE_APPLICATION_STATUSES = ['UNDER_REVIEW', 'ACCEPTED', 'REJECTED'];
+
 const email = z
   .string({ required_error: 'Email is required' })
   .trim()
@@ -21,6 +26,45 @@ const password = z
   .regex(/[A-Z]/, 'Password must contain an uppercase letter')
   .regex(/[0-9]/, 'Password must contain a number');
 
+// Skills are normalized (trimmed, lowercased, deduplicated) so that
+// "React" and " react " always match in searches.
+const skillList = (maxItems) =>
+  z
+    .array(z.string().trim().toLowerCase().min(1, 'Skill cannot be empty').max(30, 'Skill must be at most 30 characters'))
+    .max(maxItems, `At most ${maxItems} skills allowed`)
+    .transform((skills) => [...new Set(skills)]);
+
+// Query-string variant: "React, Node.js , sql" -> ['react', 'node.js', 'sql']
+const skillsFromQuery = z
+  .string()
+  .transform((value) =>
+    [...new Set(value.split(',').map((skill) => skill.trim().toLowerCase()).filter(Boolean))].slice(0, 15)
+  )
+  .optional();
+
+// Optional free-text query param: empty strings behave like "not provided".
+const optionalQueryText = (max) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((value) => value || undefined)
+    .optional();
+
+const years = z.coerce
+  .number({ invalid_type_error: 'Must be a number' })
+  .int('Must be a whole number')
+  .min(0, 'Cannot be negative')
+  .max(50, 'Must be at most 50');
+
+const salaryLpa = z.coerce
+  .number({ invalid_type_error: 'Must be a number' })
+  .int('Must be a whole number')
+  .min(0, 'Cannot be negative')
+  .max(1000, 'Must be at most 1000 LPA');
+
+/* --------------------------------- auth --------------------------------- */
+
 const registerSchema = z.object({
   name: z
     .string({ required_error: 'Name is required' })
@@ -29,6 +73,9 @@ const registerSchema = z.object({
     .max(100, 'Name must be at most 100 characters'),
   email,
   password,
+  role: z
+    .enum(ROLES, { errorMap: () => ({ message: `Role must be one of: ${ROLES.join(', ')}` }) })
+    .default('CANDIDATE'),
 });
 
 const loginSchema = z.object({
@@ -36,26 +83,38 @@ const loginSchema = z.object({
   password: z.string({ required_error: 'Password is required' }).min(1, 'Password is required'),
 });
 
-const EMPLOYMENT_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP'];
-const JOB_STATUSES = ['OPEN', 'CLOSED'];
-const REVIEWABLE_APPLICATION_STATUSES = ['UNDER_REVIEW', 'ACCEPTED', 'REJECTED'];
+/* --------------------------------- jobs --------------------------------- */
 
 const jobBase = {
   title: z.string().trim().min(3, 'Title must be at least 3 characters').max(150),
+  company: z.string().trim().min(2, 'Company must be at least 2 characters').max(100),
   description: z.string().trim().min(10, 'Description must be at least 10 characters').max(5000),
   location: z.string().trim().min(2, 'Location must be at least 2 characters').max(100),
   employmentType: z.enum(EMPLOYMENT_TYPES, {
     errorMap: () => ({ message: `Employment type must be one of: ${EMPLOYMENT_TYPES.join(', ')}` }),
   }),
-  salaryRange: z
-    .string()
-    .trim()
-    .max(100)
-    .optional()
-    .transform((value) => (value === '' ? undefined : value)),
+  skills: skillList(15).refine((skills) => skills.length > 0, {
+    message: 'At least one skill is required',
+  }),
+  experienceMin: years,
+  experienceMax: years.optional().nullable().transform((value) => value ?? undefined),
+  salaryMin: salaryLpa.optional().nullable().transform((value) => value ?? undefined),
+  salaryMax: salaryLpa.optional().nullable().transform((value) => value ?? undefined),
 };
 
-const createJobSchema = z.object(jobBase);
+const rangesAreOrdered = (data) => {
+  if (data.experienceMin !== undefined && data.experienceMax !== undefined) {
+    if (data.experienceMin > data.experienceMax) return false;
+  }
+  if (data.salaryMin !== undefined && data.salaryMax !== undefined) {
+    if (data.salaryMin > data.salaryMax) return false;
+  }
+  return true;
+};
+
+const createJobSchema = z
+  .object(jobBase)
+  .refine(rangesAreOrdered, { message: 'Minimum cannot be greater than maximum' });
 
 const updateJobSchema = z
   .object({
@@ -64,7 +123,20 @@ const updateJobSchema = z
   })
   .refine((data) => Object.values(data).some((value) => value !== undefined), {
     message: 'At least one field must be provided',
-  });
+  })
+  .refine(rangesAreOrdered, { message: 'Minimum cannot be greater than maximum' });
+
+// Candidate/HR job search — every filter is optional.
+const jobSearchSchema = z.object({
+  title: optionalQueryText(150),
+  company: optionalQueryText(100),
+  location: optionalQueryText(100),
+  skills: skillsFromQuery,
+  maxExperience: years.optional(),
+  minSalary: salaryLpa.optional(),
+});
+
+/* ----------------------------- applications ----------------------------- */
 
 const createApplicationSchema = z.object({
   coverLetter: z
@@ -82,6 +154,28 @@ const updateApplicationStatusSchema = z.object({
   }),
 });
 
+/* ------------------------------- profiles ------------------------------- */
+
+const profileSchema = z.object({
+  headline: z.string().trim().max(150, 'Headline must be at most 150 characters').default(''),
+  skills: skillList(15).default([]),
+  experienceYears: years.default(0),
+  location: z.string().trim().max(100, 'Location must be at most 100 characters').default(''),
+  expectedSalary: salaryLpa
+    .optional()
+    .nullable()
+    .transform((value) => value ?? null),
+});
+
+// HR candidate search — every filter is optional.
+const candidateSearchSchema = z.object({
+  skills: skillsFromQuery,
+  location: optionalQueryText(100),
+  minExperience: years.optional(),
+});
+
+/* -------------------------------- shared -------------------------------- */
+
 // Coerces and rejects non-numeric ids ("/jobs/abc" -> 400, not a DB error).
 const idParamSchema = z.object({
   id: z.coerce.number({ invalid_type_error: 'id must be a number' }).int().positive(),
@@ -92,9 +186,13 @@ module.exports = {
   loginSchema,
   createJobSchema,
   updateJobSchema,
+  jobSearchSchema,
   createApplicationSchema,
   updateApplicationStatusSchema,
+  profileSchema,
+  candidateSearchSchema,
   idParamSchema,
+  ROLES,
   EMPLOYMENT_TYPES,
   JOB_STATUSES,
 };

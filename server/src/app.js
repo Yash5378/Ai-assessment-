@@ -15,6 +15,11 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 function createApp() {
   const app = express();
 
+  // Exactly one proxy (nginx) sits in front of the API in Docker; trusting
+  // it lets rate limiting see the real client IP from X-Forwarded-For
+  // instead of treating every visitor as the proxy's address.
+  app.set('trust proxy', 1);
+
   app.use(helmet());
   app.use(cors({ origin: env.clientOrigin, credentials: true }));
   app.use(express.json({ limit: '100kb' }));
