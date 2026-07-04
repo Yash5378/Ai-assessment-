@@ -4,11 +4,15 @@ import { useAuth } from '../context/AuthContext';
 import { validateEmail, validateRequired, collectErrors } from '../utils/validation';
 import FormField from '../components/FormField';
 import Alert from '../components/Alert';
+import RoleTabs from '../components/RoleTabs';
+
+const ROLE_LABELS = { HR: 'HR / Recruiter', CANDIDATE: 'Candidate' };
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
 
+  const [role, setRole] = useState('CANDIDATE');
   const [form, setForm] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
@@ -36,6 +40,18 @@ export default function Login() {
     setSubmitting(true);
     try {
       const user = await login(form.email.trim(), form.password);
+
+      // The account's actual role is authoritative. If it doesn't match the
+      // selected tab, tell the user which kind of account this is.
+      if (user.role !== role) {
+        await logout();
+        setApiError(
+          `This email is registered as a ${ROLE_LABELS[user.role]} account. ` +
+            `Please switch to the ${ROLE_LABELS[user.role]} tab to log in.`
+        );
+        return;
+      }
+
       navigate(user.role === 'HR' ? '/hr' : '/jobs');
     } catch (err) {
       setApiError(err.message);
@@ -49,6 +65,8 @@ export default function Login() {
       <form className="card auth-card" onSubmit={handleSubmit} noValidate>
         <h1>Welcome back</h1>
         <p className="muted">Log in to the Recruitment Portal</p>
+
+        <RoleTabs value={role} onChange={setRole} />
 
         <Alert>{apiError}</Alert>
 
@@ -72,11 +90,11 @@ export default function Login() {
         />
 
         <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
-          {submitting ? 'Logging in…' : 'Log in'}
+          {submitting ? 'Logging in…' : `Log in as ${ROLE_LABELS[role]}`}
         </button>
 
         <p className="muted auth-switch">
-          New candidate? <Link to="/register">Create an account</Link>
+          New here? <Link to="/register">Create an account</Link>
         </p>
       </form>
     </div>

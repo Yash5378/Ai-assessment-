@@ -4,11 +4,18 @@ import { useAuth } from '../context/AuthContext';
 import { validateName, validateEmail, validatePassword, collectErrors } from '../utils/validation';
 import FormField from '../components/FormField';
 import Alert from '../components/Alert';
+import RoleTabs from '../components/RoleTabs';
+
+const ROLE_COPY = {
+  CANDIDATE: 'Find your next role — browse openings and apply in minutes',
+  HR: 'Post jobs and search candidates by skill to build your team',
+};
 
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
 
+  const [role, setRole] = useState('CANDIDATE');
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
@@ -36,8 +43,8 @@ export default function Register() {
 
     setSubmitting(true);
     try {
-      await register(form.name.trim(), form.email.trim(), form.password);
-      navigate('/jobs');
+      const user = await register(form.name.trim(), form.email.trim(), form.password, role);
+      navigate(user.role === 'HR' ? '/hr' : '/jobs');
     } catch (err) {
       setApiError(err.message);
     } finally {
@@ -49,12 +56,14 @@ export default function Register() {
     <div className="auth-page">
       <form className="card auth-card" onSubmit={handleSubmit} noValidate>
         <h1>Create account</h1>
-        <p className="muted">Register as a candidate to browse and apply for jobs</p>
+
+        <RoleTabs value={role} onChange={setRole} />
+        <p className="muted small">{ROLE_COPY[role]}</p>
 
         <Alert>{apiError}</Alert>
 
         <FormField
-          label="Full name"
+          label={role === 'HR' ? 'Full name / recruiter name' : 'Full name'}
           name="name"
           value={form.name}
           onChange={handleChange}
@@ -84,7 +93,9 @@ export default function Register() {
         </p>
 
         <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
-          {submitting ? 'Creating account…' : 'Create account'}
+          {submitting
+            ? 'Creating account…'
+            : `Sign up as ${role === 'HR' ? 'HR / Recruiter' : 'Candidate'}`}
         </button>
 
         <p className="muted auth-switch">
