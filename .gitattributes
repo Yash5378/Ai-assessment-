@@ -1,0 +1,3 @@
+# Normalize line endings so the repo behaves identically on Windows,
+# macOS and Linux (and inside Docker builds).
+* text=auto eol=lf

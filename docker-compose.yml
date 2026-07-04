@@ -1,0 +1,69 @@
+# Recruitment Portal — full stack orchestration.
+#
+# Runs out of the box with safe development defaults:
+#   docker compose up --build
+#
+# Every ${VAR:-default} below can be overridden via a .env file
+# (see .env.example) — no configuration is required to start.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: recruitment-db
+    environment:
+      POSTGRES_USER: ${DB_USER:-recruiter}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-recruiter_dev_password}
+      POSTGRES_DB: ${DB_NAME:-recruitment_portal}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-recruiter} -d ${DB_NAME:-recruitment_portal}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    # Intentionally NOT published to the host: only the API may reach the
+    # database, and it can never conflict with a Postgres already running
+    # on the assessor's machine.
+
+  server:
+    build: ./server
+    container_name: recruitment-api
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-recruiter}
+      DB_PASSWORD: ${DB_PASSWORD:-recruiter_dev_password}
+      DB_NAME: ${DB_NAME:-recruitment_portal}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-9f8e7d6c5b4a}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+      CLIENT_ORIGIN: http://localhost:${UI_PORT:-3000}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # Exposed for direct API exploration (e.g. curl); the UI itself talks
+      # to the API through the nginx proxy inside the Docker network.
+      - "${API_PORT:-5000}:5000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5000/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  client:
+    build: ./client
+    container_name: recruitment-ui
+    depends_on:
+      server:
+        condition: service_healthy
+    ports:
+      - "${UI_PORT:-3000}:80"
+    restart: unless-stopped
+
+volumes:
+  # Named volume keeps database data across `docker compose down` / `up`.
+  db_data:
