@@ -33,6 +33,8 @@ Startup order is health-gated: the API waits for Postgres to be healthy, the UI 
 
 Prerequisites: Docker (with Docker Compose v2). Nothing else — no local Node.js or Postgres needed.
 
+> **Make sure the Docker engine is actually running before you run the command below.** On Windows/Mac, launch **Docker Desktop** and wait until it reports "running". Having the `docker` CLI installed is not enough — if the engine is stopped you'll see `failed to connect to the Docker API`. Verify with `docker info` (it should print server details, not an error).
+
 ```bash
 git clone https://github.com/Yash5378/Ai-assessment-.git
 cd Ai-assessment-
