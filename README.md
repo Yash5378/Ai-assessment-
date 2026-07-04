@@ -70,7 +70,8 @@ You can also register new accounts via the UI — the signup page has **Candidat
 - **Onboarding** (`/onboarding`) — a **new** candidate must complete a short profile before reaching the app: phone, current city, fresher/experienced, and a **resume upload** (PDF/DOC/DOCX, max 5 MB). Until this is done, all candidate pages redirect here. (The seeded `user@test.com` is already onboarded, so the assessor logs straight in.)
 - **Browse Jobs** (`/jobs`) — search open positions by **role/title, skills, location, company, your experience and minimum salary**, with an "Applied" indicator on jobs you already applied to.
 - **Job detail & apply** (`/jobs/:id`) — full description with skill tags, experience and salary info; submit a cover-letter application (one per job, enforced in both API and DB).
-- **My Applications** (`/my-applications`) — track the live status of every application.
+- **My Applications** (`/my-applications`) — track the live status of every application, and **withdraw** one while it's still pending (you can re-apply later).
+- **Notifications** — a bell in the navbar lights up when HR moves your application through the pipeline (under review / accepted / rejected).
 - **My Profile** (`/profile`) — the full profile in sections: *Basics* (headline, skills, phone, city, experience), *Current role* (current company, designation, current CTC, notice period, industry, department), *Expectations* (expected CTC), and *Resume* (download or replace). Skills and these details are what recruiters search on.
 
 Role-based routing is enforced on both sides: a candidate visiting `/hr` is redirected away, and the API independently rejects any request outside the caller's role (401/403).
@@ -82,7 +83,7 @@ Role-based routing is enforced on both sides: a candidate visiting `/hr` is redi
 | Frontend  | React 18, React Router 6, Vite 7 (build), nginx (serving + API proxy) |
 | Backend   | Node.js 20, Express 4, zod (validation), jsonwebtoken, bcryptjs, helmet, express-rate-limit |
 | Database  | PostgreSQL 16 (`pg` driver, parameterized queries, no ORM) |
-| Testing   | Jest + supertest (server: 94 mocked + 10 real-PostgreSQL), Vitest + Testing Library (client: 32) — 136 tests |
+| Testing   | Jest + supertest (server: 103 mocked + 11 real-PostgreSQL), Vitest + Testing Library (client: 32) — 146 tests |
 | API Docs  | OpenAPI 3 + Swagger UI at `/api/docs` |
 | Uploads   | multer (resume upload: PDF/DOC/DOCX, 5 MB cap, magic-byte content verification, server-generated filenames) |
 | Tooling   | ESLint + Prettier (both apps), GitHub Actions CI (lint, tests incl. real-DB, builds, compose smoke test) |
@@ -112,7 +113,9 @@ Full interactive docs live at **`/api/docs`** (Swagger UI). Summary:
 | `POST /api/jobs/:id/applications` | Candidate | Apply (optional cover letter, one per job) |
 | `GET /api/jobs/:id/applications` | HR (owner) | Applicants with resume flags |
 | `GET /api/applications/mine` | Candidate | My applications + status |
-| `PATCH /api/applications/:id/status` | HR (owner) | UNDER_REVIEW / ACCEPTED / REJECTED |
+| `PATCH /api/applications/:id/status` | HR (owner) | UNDER_REVIEW / ACCEPTED / REJECTED (notifies the candidate) |
+| `DELETE /api/applications/:id` | Candidate | Withdraw a pending application |
+| `GET /api/notifications` · `POST /api/notifications/read` | auth | Notification feed + mark-as-read |
 | `GET/PUT /api/profile/me` | Candidate | Full profile read/update |
 | `POST /api/profile/onboarding` | Candidate | Complete onboarding (multipart, required resume) |
 | `POST/GET /api/profile/resume` | Candidate | Replace / download own resume |
@@ -169,7 +172,7 @@ Intentionally scoped out to keep the assessment focused:
 - No password reset / email verification flow (would need an email provider).
 - No pagination — job, applicant and candidate lists load fully (fine at assessment scale).
 - No file uploads — applications are cover-letter text rather than résumé attachments.
-- Candidates cannot withdraw or edit an application once submitted.
+- Applications cannot be edited after submission (though pending ones can be withdrawn and re-submitted).
 - Recruiter signup is open (anyone may register as HR). In production this would be gated behind company-domain verification or an admin approval step.
 - The seeded `user@test.com` candidate is pre-onboarded but has **no resume file** (seeding cannot fabricate a real document), so an HR resume download for that specific account returns 404. Onboard a fresh candidate to exercise the full resume flow.
 - Resumes are stored on the local Docker volume; a production system would use object storage (e.g. S3) with signed URLs and virus scanning.

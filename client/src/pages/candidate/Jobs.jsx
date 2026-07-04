@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import Alert from '../../components/Alert';
 import EmptyState from '../../components/EmptyState';
@@ -21,8 +21,19 @@ const EMPTY_FILTERS = {
   minSalary: '',
 };
 
+// The URL query string is the source of truth for active filters, so
+// searches are shareable, bookmarkable and back-button friendly.
+const filtersFromParams = (searchParams) => {
+  const filters = { ...EMPTY_FILTERS };
+  for (const key of Object.keys(EMPTY_FILTERS)) {
+    filters[key] = searchParams.get(key) ?? '';
+  }
+  return filters;
+};
+
 export default function Jobs() {
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [filters, setFilters] = useState(() => filtersFromParams(searchParams));
   const [jobs, setJobs] = useState(null);
   const [error, setError] = useState('');
   const [searching, setSearching] = useState(false);
@@ -40,9 +51,12 @@ export default function Jobs() {
     }
   }, []);
 
+  // Runs on mount and whenever the URL changes (search, clear, back button).
   useEffect(() => {
-    loadJobs(EMPTY_FILTERS);
-  }, [loadJobs]);
+    const active = filtersFromParams(searchParams);
+    setFilters(active);
+    loadJobs(active);
+  }, [searchParams, loadJobs]);
 
   const handleFilterChange = (event) => {
     const { name, value } = event.target;
@@ -51,12 +65,15 @@ export default function Jobs() {
 
   const handleSearch = (event) => {
     event.preventDefault();
-    loadJobs(filters);
+    const params = {};
+    for (const [key, value] of Object.entries(filters)) {
+      if (String(value).trim() !== '') params[key] = String(value).trim();
+    }
+    setSearchParams(params); // the useEffect above performs the fetch
   };
 
   const handleClear = () => {
-    setFilters(EMPTY_FILTERS);
-    loadJobs(EMPTY_FILTERS);
+    setSearchParams({});
   };
 
   const hasActiveFilters = Object.values(filters).some((value) => String(value).trim() !== '');

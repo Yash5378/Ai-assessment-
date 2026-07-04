@@ -45,9 +45,10 @@ async function getMyProfile(userId) {
 
 // Used to clean up the replaced file from disk after a new upload.
 async function getStoredResumeFilename(userId) {
-  const result = await db.query('SELECT resume_filename FROM candidate_profiles WHERE user_id = $1', [
-    userId,
-  ]);
+  const result = await db.query(
+    'SELECT resume_filename FROM candidate_profiles WHERE user_id = $1',
+    [userId]
+  );
   return result.rows[0]?.resume_filename ?? null;
 }
 
