@@ -2,6 +2,7 @@ const createApp = require('./app');
 const env = require('./config/env');
 const { pool } = require('./db/pool');
 const { migrate } = require('./db/migrate');
+const { seed } = require('./db/seed');
 
 const DB_RETRY_ATTEMPTS = 20;
 const DB_RETRY_DELAY_MS = 2000;
@@ -29,6 +30,7 @@ async function start() {
   await waitForDatabase();
   await migrate();
   console.log('Database schema is up to date');
+  await seed();
 
   const app = createApp();
   const server = app.listen(env.port, () => {
