@@ -108,7 +108,12 @@ async function ensureCandidateProfile() {
         employment_status, onboarded, current_company, current_designation,
         current_ctc, expected_ctc, notice_period, industry, department)
      VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9, $10, $11, $12, $13, $14)
-     ON CONFLICT (user_id) DO UPDATE SET onboarded = true`,
+     ON CONFLICT (user_id) DO UPDATE SET
+       onboarded = true,
+       phone = CASE WHEN candidate_profiles.phone = '' THEN EXCLUDED.phone ELSE candidate_profiles.phone END,
+       current_city = CASE WHEN candidate_profiles.current_city = '' THEN EXCLUDED.current_city ELSE candidate_profiles.current_city END,
+       current_company = CASE WHEN candidate_profiles.current_company = '' THEN EXCLUDED.current_company ELSE candidate_profiles.current_company END,
+       current_designation = CASE WHEN candidate_profiles.current_designation = '' THEN EXCLUDED.current_designation ELSE candidate_profiles.current_designation END`,
     [
       rows[0].id,
       p.headline,

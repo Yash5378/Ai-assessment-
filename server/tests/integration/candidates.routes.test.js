@@ -26,37 +26,50 @@ describe('GET /api/candidates (HR talent search)', () => {
     expect(db.query).not.toHaveBeenCalled();
   });
 
-  it('returns matching candidates for HR with skill filters', async () => {
+  it('returns matching candidates for HR with skill and experience-range filters', async () => {
     db.query.mockResolvedValueOnce({
       rows: [
         {
           id: 2,
           name: 'Test Candidate',
           email: 'user@test.com',
+          phone: '+91 90000 00000',
           headline: 'Frontend developer',
           skills: ['react', 'css'],
           experienceYears: 3,
-          location: 'Bengaluru, India',
-          expectedSalary: 18,
+          currentCity: 'Bengaluru, India',
+          expectedCtc: 18,
         },
       ],
     });
 
     const response = await request(app)
-      .get('/api/candidates?skills=React,%20sql&minExperience=2')
+      .get('/api/candidates?skills=React,%20sql&minExperience=2&maxExperience=8')
       .set('Cookie', asHr);
 
     expect(response.status).toBe(200);
     expect(response.body.candidates).toHaveLength(1);
 
     // Query-string filters arrive normalized: lowercased skills, numeric exp.
-    const [, values] = db.query.mock.calls[0];
-    expect(values).toEqual([['react', 'sql'], 2]);
+    const [sql, values] = db.query.mock.calls[0];
+    expect(values).toEqual([['react', 'sql'], 2, 8]);
+    // Skill match is case-insensitive on the stored side too.
+    expect(sql).toMatch(/lower\(skill\) = ANY/);
+    expect(sql).toMatch(/experience_years >=/);
+    expect(sql).toMatch(/experience_years <=/);
   });
 
   it('rejects a non-numeric experience filter with 400', async () => {
     const response = await request(app)
       .get('/api/candidates?minExperience=lots')
+      .set('Cookie', asHr);
+    expect(response.status).toBe(400);
+    expect(db.query).not.toHaveBeenCalled();
+  });
+
+  it('rejects a min experience greater than max with 400', async () => {
+    const response = await request(app)
+      .get('/api/candidates?minExperience=8&maxExperience=2')
       .set('Cookie', asHr);
     expect(response.status).toBe(400);
     expect(db.query).not.toHaveBeenCalled();

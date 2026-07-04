@@ -215,11 +215,20 @@ const profileSchema = z.object({
 });
 
 // HR candidate search — every filter is optional.
-const candidateSearchSchema = z.object({
-  skills: skillsFromQuery,
-  location: optionalQueryText(100),
-  minExperience: years.optional(),
-});
+const candidateSearchSchema = z
+  .object({
+    skills: skillsFromQuery,
+    location: optionalQueryText(100),
+    minExperience: years.optional(),
+    maxExperience: years.optional(),
+  })
+  .refine(
+    (data) =>
+      data.minExperience === undefined ||
+      data.maxExperience === undefined ||
+      data.minExperience <= data.maxExperience,
+    { message: 'Minimum experience cannot be greater than maximum', path: ['minExperience'] }
+  );
 
 /* -------------------------------- shared -------------------------------- */
 

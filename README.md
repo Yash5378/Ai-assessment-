@@ -63,7 +63,7 @@ You can also register new accounts via the UI — the signup page has **Candidat
 ### HR / Recruiter (log in as `admin@test.com` or sign up on the HR tab)
 - **Dashboard** (`/hr`) — live stats: jobs posted, open positions, applications received, awaiting review.
 - **Manage Jobs** (`/hr/jobs`) — post new openings (title, company, location, employment type, required skills, experience range, salary range in ₹ LPA), edit them, and close/reopen them. HR users can only manage jobs **they** created — jobs posted by other HR users are visible but read-only.
-- **Find Candidates** (`/hr/candidates`) — search candidates by **skills**, location and minimum experience; results show their current role, expected CTC, a contact link and a **resume download** (when the candidate uploaded one). Applicant lists also expose a resume download per candidate.
+- **Find Candidates** (`/hr/candidates`) — search candidates by **skills, location and an experience range (min & max years)**. Skill and location matching is **case-insensitive** (searching `react` matches anyone with React on their profile). Each result shows the candidate's current role, expected CTC and notice period, with a **resume download** when available. Click **Contact** to open full contact details (email, phone, location, CTC, notice period), and **select multiple candidates** (checkboxes) then **Email selected** to compose one message to all of them (BCC) in your mail client. Applicant lists also expose a resume download per candidate.
 - **Applicants** (`/hr/jobs/:id/applicants`) — see every candidate who applied, read their cover letter, and move the application through the pipeline: *Submitted → Under review → Accepted / Rejected*.
 
 ### Candidate (log in as `user@test.com` or sign up on the Candidate tab)
@@ -138,3 +138,4 @@ Intentionally scoped out to keep the assessment focused:
 - Recruiter signup is open (anyone may register as HR). In production this would be gated behind company-domain verification or an admin approval step.
 - The seeded `user@test.com` candidate is pre-onboarded but has **no resume file** (seeding cannot fabricate a real document), so an HR resume download for that specific account returns 404. Onboard a fresh candidate to exercise the full resume flow.
 - Resumes are stored on the local Docker volume; a production system would use object storage (e.g. S3) with signed URLs and virus scanning.
+- "Email selected" opens the recruiter's own mail client via a `mailto:` link (candidates BCC'd) rather than sending server-side — this keeps the stack free of SMTP configuration. A production build would send through a transactional email provider.

@@ -3,8 +3,10 @@ import { api } from '../../api/client';
 import Alert from '../../components/Alert';
 import EmptyState from '../../components/EmptyState';
 import SkillChips from '../../components/SkillChips';
+import ContactModal from '../../components/ContactModal';
+import { formatNoticePeriod, formatEmploymentStatus } from '../../utils/format';
 
-const EMPTY_FILTERS = { skills: '', location: '', minExperience: '' };
+const EMPTY_FILTERS = { skills: '', location: '', minExperience: '', maxExperience: '' };
 
 const buildQuery = (filters) => {
   const params = new URLSearchParams();
@@ -20,6 +22,8 @@ export default function FindCandidates() {
   const [candidates, setCandidates] = useState(null);
   const [error, setError] = useState('');
   const [searching, setSearching] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
+  const [contact, setContact] = useState(null);
 
   const loadCandidates = useCallback(async (activeFilters) => {
     setSearching(true);
@@ -27,6 +31,11 @@ export default function FindCandidates() {
     try {
       const data = await api.get(`/candidates${buildQuery(activeFilters)}`);
       setCandidates(data.candidates);
+      // Drop selections that are no longer in the result set.
+      setSelected((prev) => {
+        const ids = new Set(data.candidates.map((c) => c.id));
+        return new Set([...prev].filter((id) => ids.has(id)));
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -53,6 +62,32 @@ export default function FindCandidates() {
     loadCandidates(EMPTY_FILTERS);
   };
 
+  const toggleOne = (id) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const allSelected = candidates?.length > 0 && selected.size === candidates.length;
+
+  const toggleAll = () => {
+    setSelected(allSelected ? new Set() : new Set(candidates.map((c) => c.id)));
+  };
+
+  // Opens the recruiter's mail client with every selected candidate on BCC,
+  // so recipients don't see each other's addresses.
+  const emailSelected = () => {
+    if (!candidates) return;
+    const emails = candidates
+      .filter((c) => selected.has(c.id))
+      .map((c) => c.email)
+      .join(',');
+    if (emails) window.location.href = `mailto:?bcc=${encodeURIComponent(emails)}`;
+  };
+
   const hasActiveFilters = Object.values(filters).some((value) => String(value).trim() !== '');
 
   return (
@@ -60,7 +95,7 @@ export default function FindCandidates() {
       <div className="page-header">
         <div>
           <h1>Find candidates</h1>
-          <p className="muted">Search talent by skills, location and experience</p>
+          <p className="muted">Search talent by skills, location and experience range</p>
         </div>
       </div>
 
@@ -90,6 +125,16 @@ export default function FindCandidates() {
             value={filters.minExperience}
             onChange={handleChange}
           />
+          <input
+            className="input"
+            name="maxExperience"
+            type="number"
+            min="0"
+            max="50"
+            placeholder="Max experience (yrs)"
+            value={filters.maxExperience}
+            onChange={handleChange}
+          />
         </div>
         <div className="card-actions">
           <button type="submit" className="btn btn-primary btn-sm" disabled={searching}>
@@ -108,10 +153,26 @@ export default function FindCandidates() {
 
       {candidates && (
         <>
-          <p className="muted">
-            {candidates.length} candidate{candidates.length === 1 ? '' : 's'} found
-            {candidates.length === 0 ? '' : ' (only candidates with a published profile appear here)'}
-          </p>
+          <div className="results-bar">
+            <label className="select-all">
+              {candidates.length > 0 && (
+                <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+              )}
+              <span className="muted">
+                {candidates.length} candidate{candidates.length === 1 ? '' : 's'} found
+                {selected.size > 0 ? ` · ${selected.size} selected` : ''}
+              </span>
+            </label>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={emailSelected}
+              disabled={selected.size === 0}
+            >
+              Email selected ({selected.size})
+            </button>
+          </div>
+
           {candidates.length === 0 ? (
             <EmptyState
               title="No candidates match your search"
@@ -120,15 +181,25 @@ export default function FindCandidates() {
           ) : (
             <div className="card-list">
               {candidates.map((candidate) => (
-                <article key={candidate.id} className="card">
-                  <div className="card-row">
+                <article
+                  key={candidate.id}
+                  className={selected.has(candidate.id) ? 'card candidate-card selected' : 'card candidate-card'}
+                >
+                  <input
+                    type="checkbox"
+                    className="candidate-check"
+                    checked={selected.has(candidate.id)}
+                    onChange={() => toggleOne(candidate.id)}
+                    aria-label={`Select ${candidate.name}`}
+                  />
+                  <div className="card-row candidate-body">
                     <div>
                       <h3>{candidate.name}</h3>
                       {candidate.headline && <p className="muted">{candidate.headline}</p>}
                       <p className="card-meta">
                         {candidate.currentCity && <span>{candidate.currentCity}</span>}
                         <span>
-                          {candidate.experienceYears} yr{candidate.experienceYears === 1 ? '' : 's'} experience
+                          {candidate.experienceYears} yr{candidate.experienceYears === 1 ? '' : 's'} · {formatEmploymentStatus(candidate.employmentStatus)}
                         </span>
                         {candidate.currentCompany && (
                           <span>
@@ -137,9 +208,8 @@ export default function FindCandidates() {
                               : candidate.currentCompany}
                           </span>
                         )}
-                        {candidate.expectedCtc != null && (
-                          <span>Expects ₹{candidate.expectedCtc} LPA</span>
-                        )}
+                        {candidate.expectedCtc != null && <span>Expects ₹{candidate.expectedCtc} LPA</span>}
+                        {candidate.noticePeriod && <span>Notice: {formatNoticePeriod(candidate.noticePeriod)}</span>}
                       </p>
                       <SkillChips skills={candidate.skills} />
                     </div>
@@ -152,9 +222,13 @@ export default function FindCandidates() {
                           Resume
                         </a>
                       )}
-                      <a className="btn btn-secondary btn-sm" href={`mailto:${candidate.email}`}>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => setContact(candidate)}
+                      >
                         Contact
-                      </a>
+                      </button>
                     </div>
                   </div>
                 </article>
@@ -163,6 +237,8 @@ export default function FindCandidates() {
           )}
         </>
       )}
+
+      {contact && <ContactModal candidate={contact} onClose={() => setContact(null)} />}
     </div>
   );
 }
