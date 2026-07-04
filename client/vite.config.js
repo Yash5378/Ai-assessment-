@@ -16,6 +16,8 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'node',
+    environment: 'jsdom',
+    globals: true, // exposes afterEach so testing-library auto-cleans between tests
+    setupFiles: './src/test/setup.js',
   },
 });
