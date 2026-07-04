@@ -16,9 +16,17 @@ export default function ContactModal({ candidate, onClose }) {
 
   const rows = [
     ['Email', candidate.email && <a href={`mailto:${candidate.email}`}>{candidate.email}</a>],
-    ['Phone', candidate.phone && <a href={`tel:${candidate.phone.replace(/\s/g, '')}`}>{candidate.phone}</a>],
+    [
+      'Phone',
+      candidate.phone && (
+        <a href={`tel:${candidate.phone.replace(/\s/g, '')}`}>{candidate.phone}</a>
+      ),
+    ],
     ['Location', candidate.currentCity],
-    ['Experience', `${candidate.experienceYears} yr${candidate.experienceYears === 1 ? '' : 's'} (${formatEmploymentStatus(candidate.employmentStatus)})`],
+    [
+      'Experience',
+      `${candidate.experienceYears} yr${candidate.experienceYears === 1 ? '' : 's'} (${formatEmploymentStatus(candidate.employmentStatus)})`,
+    ],
     ['Current company', candidate.currentCompany],
     ['Designation', candidate.currentDesignation],
     ['Current CTC', candidate.currentCtc != null ? `₹${candidate.currentCtc} LPA` : ''],
@@ -40,7 +48,12 @@ export default function ContactModal({ candidate, onClose }) {
             <h2>{candidate.name}</h2>
             {candidate.headline && <p className="muted small">{candidate.headline}</p>}
           </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={onClose}
+            aria-label="Close"
+          >
             ✕
           </button>
         </div>

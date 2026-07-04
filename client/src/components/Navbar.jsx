@@ -39,7 +39,8 @@ export default function Navbar() {
         </nav>
         <div className="navbar-user">
           <span className="navbar-username">
-            {user.name} <span className={`role-chip role-${user.role.toLowerCase()}`}>{user.role}</span>
+            {user.name}{' '}
+            <span className={`role-chip role-${user.role.toLowerCase()}`}>{user.role}</span>
           </span>
           <button type="button" className="btn btn-ghost" onClick={handleLogout}>
             Log out

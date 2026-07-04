@@ -63,7 +63,10 @@ export function validateNumber(value, label, { min = 0, max = 50, required = fal
  * each at most 30 characters.
  */
 export function validateSkills(value, { required = true } = {}) {
-  const skills = value.split(',').map((skill) => skill.trim()).filter(Boolean);
+  const skills = value
+    .split(',')
+    .map((skill) => skill.trim())
+    .filter(Boolean);
   if (skills.length === 0) return required ? 'Add at least one skill (comma-separated)' : '';
   if (skills.length > 15) return 'At most 15 skills allowed';
   const tooLong = skills.find((skill) => skill.length > 30);
@@ -71,8 +74,14 @@ export function validateSkills(value, { required = true } = {}) {
   return '';
 }
 
-export const parseSkills = (value) =>
-  [...new Set(value.split(',').map((skill) => skill.trim().toLowerCase()).filter(Boolean))];
+export const parseSkills = (value) => [
+  ...new Set(
+    value
+      .split(',')
+      .map((skill) => skill.trim().toLowerCase())
+      .filter(Boolean)
+  ),
+];
 
 const PHONE_PATTERN = /^[+\d][\d\s-]{6,14}$/;
 

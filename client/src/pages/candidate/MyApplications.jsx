@@ -17,7 +17,12 @@ export default function MyApplications() {
       .catch((err) => setError(err.message));
   }, []);
 
-  if (error) return <div className="page"><Alert>{error}</Alert></div>;
+  if (error)
+    return (
+      <div className="page">
+        <Alert>{error}</Alert>
+      </div>
+    );
   if (!applications) return <div className="page-loader">Loading applications…</div>;
 
   return (

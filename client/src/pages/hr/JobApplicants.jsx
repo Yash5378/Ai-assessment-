@@ -45,7 +45,12 @@ export default function JobApplicants() {
     }
   };
 
-  if (error) return <div className="page"><Alert>{error}</Alert></div>;
+  if (error)
+    return (
+      <div className="page">
+        <Alert>{error}</Alert>
+      </div>
+    );
   if (!job || !applications) return <div className="page-loader">Loading applicants…</div>;
 
   return (
@@ -68,7 +73,10 @@ export default function JobApplicants() {
       <Alert>{actionError}</Alert>
 
       {applications.length === 0 ? (
-        <EmptyState title="No applications yet" hint="Candidates will appear here once they apply." />
+        <EmptyState
+          title="No applications yet"
+          hint="Candidates will appear here once they apply."
+        />
       ) : (
         <div className="card-list">
           {applications.map((application) => (

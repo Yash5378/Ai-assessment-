@@ -5,17 +5,9 @@ import EmptyState from '../../components/EmptyState';
 import SkillChips from '../../components/SkillChips';
 import ContactModal from '../../components/ContactModal';
 import { formatNoticePeriod, formatEmploymentStatus } from '../../utils/format';
+import { buildQuery } from '../../utils/query';
 
 const EMPTY_FILTERS = { skills: '', location: '', minExperience: '', maxExperience: '' };
-
-const buildQuery = (filters) => {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(filters)) {
-    if (String(value).trim() !== '') params.set(key, String(value).trim());
-  }
-  const query = params.toString();
-  return query ? `?${query}` : '';
-};
 
 export default function FindCandidates() {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -183,7 +175,11 @@ export default function FindCandidates() {
               {candidates.map((candidate) => (
                 <article
                   key={candidate.id}
-                  className={selected.has(candidate.id) ? 'card candidate-card selected' : 'card candidate-card'}
+                  className={
+                    selected.has(candidate.id)
+                      ? 'card candidate-card selected'
+                      : 'card candidate-card'
+                  }
                 >
                   <input
                     type="checkbox"
@@ -199,7 +195,8 @@ export default function FindCandidates() {
                       <p className="card-meta">
                         {candidate.currentCity && <span>{candidate.currentCity}</span>}
                         <span>
-                          {candidate.experienceYears} yr{candidate.experienceYears === 1 ? '' : 's'} · {formatEmploymentStatus(candidate.employmentStatus)}
+                          {candidate.experienceYears} yr{candidate.experienceYears === 1 ? '' : 's'}{' '}
+                          · {formatEmploymentStatus(candidate.employmentStatus)}
                         </span>
                         {candidate.currentCompany && (
                           <span>
@@ -208,8 +205,12 @@ export default function FindCandidates() {
                               : candidate.currentCompany}
                           </span>
                         )}
-                        {candidate.expectedCtc != null && <span>Expects ₹{candidate.expectedCtc} LPA</span>}
-                        {candidate.noticePeriod && <span>Notice: {formatNoticePeriod(candidate.noticePeriod)}</span>}
+                        {candidate.expectedCtc != null && (
+                          <span>Expects ₹{candidate.expectedCtc} LPA</span>
+                        )}
+                        {candidate.noticePeriod && (
+                          <span>Notice: {formatNoticePeriod(candidate.noticePeriod)}</span>
+                        )}
                       </p>
                       <SkillChips skills={candidate.skills} />
                     </div>

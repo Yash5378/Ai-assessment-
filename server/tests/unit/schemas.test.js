@@ -124,7 +124,11 @@ describe('jobSearchSchema (query params)', () => {
 });
 
 describe('onboardingSchema', () => {
-  const valid = { phone: '+91 98765 43210', currentCity: 'Mumbai', employmentStatus: 'EXPERIENCED' };
+  const valid = {
+    phone: '+91 98765 43210',
+    currentCity: 'Mumbai',
+    employmentStatus: 'EXPERIENCED',
+  };
 
   it('accepts valid onboarding info', () => {
     expect(onboardingSchema.safeParse(valid).success).toBe(true);
@@ -135,7 +139,9 @@ describe('onboardingSchema', () => {
   });
 
   it('rejects an unknown employment status', () => {
-    expect(onboardingSchema.safeParse({ ...valid, employmentStatus: 'INTERN' }).success).toBe(false);
+    expect(onboardingSchema.safeParse({ ...valid, employmentStatus: 'INTERN' }).success).toBe(
+      false
+    );
   });
 
   it('rejects a too-short city', () => {
@@ -212,7 +218,9 @@ describe('createApplicationSchema', () => {
   });
 
   it('still rejects a cover letter over 3000 characters', () => {
-    expect(createApplicationSchema.safeParse({ coverLetter: 'x'.repeat(3001) }).success).toBe(false);
+    expect(createApplicationSchema.safeParse({ coverLetter: 'x'.repeat(3001) }).success).toBe(
+      false
+    );
   });
 });
 

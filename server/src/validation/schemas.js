@@ -32,7 +32,14 @@ const password = z
 // "React" and " react " always match in searches.
 const skillList = (maxItems) =>
   z
-    .array(z.string().trim().toLowerCase().min(1, 'Skill cannot be empty').max(30, 'Skill must be at most 30 characters'))
+    .array(
+      z
+        .string()
+        .trim()
+        .toLowerCase()
+        .min(1, 'Skill cannot be empty')
+        .max(30, 'Skill must be at most 30 characters')
+    )
     .max(maxItems, `At most ${maxItems} skills allowed`)
     .transform((skills) => [...new Set(skills)]);
 
@@ -40,7 +47,14 @@ const skillList = (maxItems) =>
 const skillsFromQuery = z
   .string()
   .transform((value) =>
-    [...new Set(value.split(',').map((skill) => skill.trim().toLowerCase()).filter(Boolean))].slice(0, 15)
+    [
+      ...new Set(
+        value
+          .split(',')
+          .map((skill) => skill.trim().toLowerCase())
+          .filter(Boolean)
+      ),
+    ].slice(0, 15)
   )
   .optional();
 
@@ -76,7 +90,9 @@ const phone = z
   .regex(/^[+\d][\d\s-]{6,14}$/, 'Please provide a valid phone number');
 
 const employmentStatus = z.enum(EMPLOYMENT_STATUSES, {
-  errorMap: () => ({ message: `Employment status must be one of: ${EMPLOYMENT_STATUSES.join(', ')}` }),
+  errorMap: () => ({
+    message: `Employment status must be one of: ${EMPLOYMENT_STATUSES.join(', ')}`,
+  }),
 });
 
 const shortText = (max) => z.string().trim().max(max, `Must be at most ${max} characters`);
@@ -115,9 +131,18 @@ const jobBase = {
     message: 'At least one skill is required',
   }),
   experienceMin: years,
-  experienceMax: years.optional().nullable().transform((value) => value ?? undefined),
-  salaryMin: salaryLpa.optional().nullable().transform((value) => value ?? undefined),
-  salaryMax: salaryLpa.optional().nullable().transform((value) => value ?? undefined),
+  experienceMax: years
+    .optional()
+    .nullable()
+    .transform((value) => value ?? undefined),
+  salaryMin: salaryLpa
+    .optional()
+    .nullable()
+    .transform((value) => value ?? undefined),
+  salaryMax: salaryLpa
+    .optional()
+    .nullable()
+    .transform((value) => value ?? undefined),
 };
 
 const rangesAreOrdered = (data) => {

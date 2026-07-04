@@ -69,15 +69,25 @@ export default function Profile() {
     setSuccess('');
 
     const fieldErrors = collectErrors({
-      headline: () => (form.headline.trim() ? validateLength(form.headline, 'Headline', 1, 150) : ''),
+      headline: () =>
+        form.headline.trim() ? validateLength(form.headline, 'Headline', 1, 150) : '',
       skills: () => validateSkills(form.skills, { required: false }),
       experienceYears: () => validateNumber(form.experienceYears, 'Experience', { required: true }),
       phone: () => validatePhone(form.phone, { required: false }),
-      currentCity: () => (form.currentCity.trim() ? validateLength(form.currentCity, 'Current city', 1, 100) : ''),
-      currentCompany: () => (form.currentCompany.trim() ? validateLength(form.currentCompany, 'Current company', 1, 100) : ''),
-      currentDesignation: () => (form.currentDesignation.trim() ? validateLength(form.currentDesignation, 'Designation', 1, 100) : ''),
-      industry: () => (form.industry.trim() ? validateLength(form.industry, 'Industry', 1, 100) : ''),
-      department: () => (form.department.trim() ? validateLength(form.department, 'Department', 1, 100) : ''),
+      currentCity: () =>
+        form.currentCity.trim() ? validateLength(form.currentCity, 'Current city', 1, 100) : '',
+      currentCompany: () =>
+        form.currentCompany.trim()
+          ? validateLength(form.currentCompany, 'Current company', 1, 100)
+          : '',
+      currentDesignation: () =>
+        form.currentDesignation.trim()
+          ? validateLength(form.currentDesignation, 'Designation', 1, 100)
+          : '',
+      industry: () =>
+        form.industry.trim() ? validateLength(form.industry, 'Industry', 1, 100) : '',
+      department: () =>
+        form.department.trim() ? validateLength(form.department, 'Department', 1, 100) : '',
       currentCtc: () => validateNumber(form.currentCtc, 'Current CTC', { max: 1000 }),
       expectedCtc: () => validateNumber(form.expectedCtc, 'Expected CTC', { max: 1000 }),
     });

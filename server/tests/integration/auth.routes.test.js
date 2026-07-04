@@ -60,7 +60,13 @@ describe('POST /api/auth/login', () => {
     const passwordHash = await hashPassword('Admin@1234');
     db.query.mockResolvedValueOnce({
       rows: [
-        { id: 1, name: 'HR Admin', email: 'admin@test.com', role: 'HR', password_hash: passwordHash },
+        {
+          id: 1,
+          name: 'HR Admin',
+          email: 'admin@test.com',
+          role: 'HR',
+          password_hash: passwordHash,
+        },
       ],
     });
 
@@ -77,7 +83,13 @@ describe('POST /api/auth/login', () => {
     const passwordHash = await hashPassword('Admin@1234');
     db.query.mockResolvedValueOnce({
       rows: [
-        { id: 1, name: 'HR Admin', email: 'admin@test.com', role: 'HR', password_hash: passwordHash },
+        {
+          id: 1,
+          name: 'HR Admin',
+          email: 'admin@test.com',
+          role: 'HR',
+          password_hash: passwordHash,
+        },
       ],
     });
     const wrongPassword = await request(app)

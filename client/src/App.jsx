@@ -56,23 +56,100 @@ export default function App() {
       <main>
         <Routes>
           <Route path="/" element={<RoleRedirect />} />
-          <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
-          <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+          <Route
+            path="/login"
+            element={
+              <GuestRoute>
+                <Login />
+              </GuestRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <GuestRoute>
+                <Register />
+              </GuestRoute>
+            }
+          />
 
           {/* Candidate onboarding gate (auth required, but not yet onboarded) */}
-          <Route path="/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
+          <Route
+            path="/onboarding"
+            element={
+              <OnboardingRoute>
+                <Onboarding />
+              </OnboardingRoute>
+            }
+          />
 
           {/* Candidate area */}
-          <Route path="/jobs" element={<ProtectedRoute role="CANDIDATE"><Jobs /></ProtectedRoute>} />
-          <Route path="/jobs/:id" element={<ProtectedRoute role="CANDIDATE"><JobDetail /></ProtectedRoute>} />
-          <Route path="/my-applications" element={<ProtectedRoute role="CANDIDATE"><MyApplications /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute role="CANDIDATE"><Profile /></ProtectedRoute>} />
+          <Route
+            path="/jobs"
+            element={
+              <ProtectedRoute role="CANDIDATE">
+                <Jobs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs/:id"
+            element={
+              <ProtectedRoute role="CANDIDATE">
+                <JobDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-applications"
+            element={
+              <ProtectedRoute role="CANDIDATE">
+                <MyApplications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute role="CANDIDATE">
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
 
           {/* HR area */}
-          <Route path="/hr" element={<ProtectedRoute role="HR"><Dashboard /></ProtectedRoute>} />
-          <Route path="/hr/jobs" element={<ProtectedRoute role="HR"><ManageJobs /></ProtectedRoute>} />
-          <Route path="/hr/jobs/:id/applicants" element={<ProtectedRoute role="HR"><JobApplicants /></ProtectedRoute>} />
-          <Route path="/hr/candidates" element={<ProtectedRoute role="HR"><FindCandidates /></ProtectedRoute>} />
+          <Route
+            path="/hr"
+            element={
+              <ProtectedRoute role="HR">
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/jobs"
+            element={
+              <ProtectedRoute role="HR">
+                <ManageJobs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/jobs/:id/applicants"
+            element={
+              <ProtectedRoute role="HR">
+                <JobApplicants />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hr/candidates"
+            element={
+              <ProtectedRoute role="HR">
+                <FindCandidates />
+              </ProtectedRoute>
+            }
+          />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -7,7 +7,12 @@ import EmptyState from '../../components/EmptyState';
 import StatusBadge from '../../components/StatusBadge';
 import JobForm from '../../components/JobForm';
 import SkillChips from '../../components/SkillChips';
-import { formatEmploymentType, formatDate, formatSalary, formatExperience } from '../../utils/format';
+import {
+  formatEmploymentType,
+  formatDate,
+  formatSalary,
+  formatExperience,
+} from '../../utils/format';
 
 export default function ManageJobs() {
   const { user } = useAuth();
@@ -51,7 +56,12 @@ export default function ManageJobs() {
     }
   };
 
-  if (error) return <div className="page"><Alert>{error}</Alert></div>;
+  if (error)
+    return (
+      <div className="page">
+        <Alert>{error}</Alert>
+      </div>
+    );
   if (!jobs) return <div className="page-loader">Loading jobs…</div>;
 
   return (
@@ -75,12 +85,19 @@ export default function ManageJobs() {
       {showCreateForm && (
         <div className="card" style={{ marginBottom: '1.5rem' }}>
           <h2>New job posting</h2>
-          <JobForm onSubmit={handleCreate} submitLabel="Publish job" onCancel={() => setShowCreateForm(false)} />
+          <JobForm
+            onSubmit={handleCreate}
+            submitLabel="Publish job"
+            onCancel={() => setShowCreateForm(false)}
+          />
         </div>
       )}
 
       {jobs.length === 0 ? (
-        <EmptyState title="No jobs posted yet" hint="Use the button above to publish your first opening." />
+        <EmptyState
+          title="No jobs posted yet"
+          hint="Use the button above to publish your first opening."
+        />
       ) : (
         <div className="card-list">
           {jobs.map((job) => {
@@ -127,7 +144,10 @@ export default function ManageJobs() {
                     </div>
                     {isOwner && (
                       <div className="card-actions">
-                        <Link className="btn btn-secondary btn-sm" to={`/hr/jobs/${job.id}/applicants`}>
+                        <Link
+                          className="btn btn-secondary btn-sm"
+                          to={`/hr/jobs/${job.id}/applicants`}
+                        >
                           Applicants ({job.applicationCount})
                         </Link>
                         <button

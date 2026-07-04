@@ -5,7 +5,12 @@ import Alert from '../../components/Alert';
 import FormField from '../../components/FormField';
 import SkillChips from '../../components/SkillChips';
 import { collectErrors } from '../../utils/validation';
-import { formatEmploymentType, formatDate, formatSalary, formatExperience } from '../../utils/format';
+import {
+  formatEmploymentType,
+  formatDate,
+  formatSalary,
+  formatExperience,
+} from '../../utils/format';
 
 export default function JobDetail() {
   const { id } = useParams();
@@ -26,7 +31,11 @@ export default function JobDetail() {
         setJob(jobData.job);
         setHasApplied(applicationsData.applications.some((a) => a.jobId === jobData.job.id));
       })
-      .catch((err) => setLoadError(err.status === 404 ? 'This job does not exist or is no longer open.' : err.message));
+      .catch((err) =>
+        setLoadError(
+          err.status === 404 ? 'This job does not exist or is no longer open.' : err.message
+        )
+      );
   }, [id]);
 
   const handleSubmit = async (event) => {

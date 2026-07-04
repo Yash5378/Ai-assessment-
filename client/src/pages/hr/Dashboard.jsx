@@ -23,7 +23,12 @@ export default function Dashboard() {
       .catch((err) => setError(err.message));
   }, []);
 
-  if (error) return <div className="page"><Alert>{error}</Alert></div>;
+  if (error)
+    return (
+      <div className="page">
+        <Alert>{error}</Alert>
+      </div>
+    );
   if (!stats) return <div className="page-loader">Loading dashboard…</div>;
 
   return (

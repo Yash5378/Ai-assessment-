@@ -4,7 +4,13 @@ import { api } from '../../api/client';
 import Alert from '../../components/Alert';
 import EmptyState from '../../components/EmptyState';
 import SkillChips from '../../components/SkillChips';
-import { formatEmploymentType, formatDate, formatSalary, formatExperience } from '../../utils/format';
+import {
+  formatEmploymentType,
+  formatDate,
+  formatSalary,
+  formatExperience,
+} from '../../utils/format';
+import { buildQuery } from '../../utils/query';
 
 const EMPTY_FILTERS = {
   title: '',
@@ -13,15 +19,6 @@ const EMPTY_FILTERS = {
   skills: '',
   maxExperience: '',
   minSalary: '',
-};
-
-const buildQuery = (filters) => {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(filters)) {
-    if (String(value).trim() !== '') params.set(key, String(value).trim());
-  }
-  const query = params.toString();
-  return query ? `?${query}` : '';
 };
 
 export default function Jobs() {
@@ -145,10 +142,7 @@ export default function Jobs() {
             {jobs.length} job{jobs.length === 1 ? '' : 's'} found
           </p>
           {jobs.length === 0 ? (
-            <EmptyState
-              title="No jobs match your search"
-              hint="Try removing a filter or two."
-            />
+            <EmptyState title="No jobs match your search" hint="Try removing a filter or two." />
           ) : (
             <div className="card-list">
               {jobs.map((job) => (

@@ -98,9 +98,7 @@ async function ensureUsers() {
 }
 
 async function ensureCandidateProfile() {
-  const { rows } = await pool.query('SELECT id FROM users WHERE email = $1', [
-    TEST_USERS[1].email,
-  ]);
+  const { rows } = await pool.query('SELECT id FROM users WHERE email = $1', [TEST_USERS[1].email]);
   const p = TEST_CANDIDATE_PROFILE;
   await pool.query(
     `INSERT INTO candidate_profiles
@@ -143,10 +141,10 @@ async function ensureSampleJobs() {
   const hrId = hrResult.rows[0].id;
 
   for (const job of SAMPLE_JOBS) {
-    const existing = await pool.query('SELECT id, company FROM jobs WHERE title = $1 AND created_by = $2', [
-      job.title,
-      hrId,
-    ]);
+    const existing = await pool.query(
+      'SELECT id, company FROM jobs WHERE title = $1 AND created_by = $2',
+      [job.title, hrId]
+    );
 
     if (existing.rows.length === 0) {
       await pool.query(

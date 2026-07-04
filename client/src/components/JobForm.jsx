@@ -67,7 +67,12 @@ export default function JobForm({ initialValues, onSubmit, onCancel, submitLabel
     const expMax = toNumberOrUndefined(form.experienceMax);
     const salMin = toNumberOrUndefined(form.salaryMin);
     const salMax = toNumberOrUndefined(form.salaryMax);
-    if (!fieldErrors.experienceMax && expMin !== undefined && expMax !== undefined && expMin > expMax) {
+    if (
+      !fieldErrors.experienceMax &&
+      expMin !== undefined &&
+      expMax !== undefined &&
+      expMin > expMax
+    ) {
       fieldErrors.experienceMax = 'Max experience cannot be less than min';
     }
     if (!fieldErrors.salaryMax && salMin !== undefined && salMax !== undefined && salMin > salMax) {

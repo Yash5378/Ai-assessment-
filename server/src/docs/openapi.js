@@ -109,7 +109,15 @@ const openapi = {
       },
       JobInput: {
         type: 'object',
-        required: ['title', 'company', 'description', 'location', 'employmentType', 'skills', 'experienceMin'],
+        required: [
+          'title',
+          'company',
+          'description',
+          'location',
+          'employmentType',
+          'skills',
+          'experienceMin',
+        ],
         properties: {
           title: { type: 'string', minLength: 3, maxLength: 150 },
           company: { type: 'string', minLength: 2, maxLength: 100 },
