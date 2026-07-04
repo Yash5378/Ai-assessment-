@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 /**
  * Gates a route by authentication and (optionally) role. Unauthenticated
  * users go to login; a user with the wrong role goes to their own home.
+ * Candidates who have not completed onboarding are sent there first.
  */
 export default function ProtectedRoute({ role, children }) {
   const { user, loading } = useAuth();
@@ -16,6 +17,9 @@ export default function ProtectedRoute({ role, children }) {
   }
   if (role && user.role !== role) {
     return <Navigate to={user.role === 'HR' ? '/hr' : '/jobs'} replace />;
+  }
+  if (user.role === 'CANDIDATE' && !user.onboarded) {
+    return <Navigate to="/onboarding" replace />;
   }
   return children;
 }

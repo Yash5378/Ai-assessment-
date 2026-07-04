@@ -9,6 +9,7 @@ import Jobs from './pages/candidate/Jobs';
 import JobDetail from './pages/candidate/JobDetail';
 import MyApplications from './pages/candidate/MyApplications';
 import Profile from './pages/candidate/Profile';
+import Onboarding from './pages/candidate/Onboarding';
 import Dashboard from './pages/hr/Dashboard';
 import ManageJobs from './pages/hr/ManageJobs';
 import JobApplicants from './pages/hr/JobApplicants';
@@ -35,6 +36,19 @@ function GuestRoute({ children }) {
   return children;
 }
 
+/**
+ * Guard for the onboarding page: requires an authenticated candidate but
+ * deliberately does NOT apply the onboarding redirect (that would loop).
+ * The page itself sends already-onboarded users home.
+ */
+function OnboardingRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="page-loader">Loading…</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'CANDIDATE') return <Navigate to="/hr" replace />;
+  return children;
+}
+
 export default function App() {
   return (
     <>
@@ -44,6 +58,9 @@ export default function App() {
           <Route path="/" element={<RoleRedirect />} />
           <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
           <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+
+          {/* Candidate onboarding gate (auth required, but not yet onboarded) */}
+          <Route path="/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
 
           {/* Candidate area */}
           <Route path="/jobs" element={<ProtectedRoute role="CANDIDATE"><Jobs /></ProtectedRoute>} />

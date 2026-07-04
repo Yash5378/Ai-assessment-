@@ -5,7 +5,8 @@ const AuthContext = createContext(null);
 
 /**
  * Holds the authenticated user. The session lives in an httpOnly cookie,
- * so on first load we ask the backend who we are (/auth/me).
+ * so on first load we ask the backend who we are (/auth/me). The user object
+ * carries an `onboarded` flag the app uses to gate candidate routes.
  */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -49,8 +50,16 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // Re-pull identity after a state change the token doesn't reflect
+  // (e.g. completing onboarding flips `onboarded`).
+  const refreshUser = useCallback(async () => {
+    const data = await api.get('/auth/me');
+    setUser(data.user);
+    return data.user;
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -29,8 +29,37 @@ async function request(path, options = {}) {
   return data;
 }
 
+/**
+ * Multipart upload (e.g. resume). The browser sets the multipart boundary
+ * itself, so we must NOT set a Content-Type header here.
+ */
+async function upload(path, formData) {
+  const response = await fetch(`/api${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+
+  let data = null;
+  try {
+    data = await response.json();
+  } catch {
+    // Non-JSON response — handled via status below.
+  }
+
+  if (!response.ok) {
+    const error = new Error(data?.error || `Request failed (${response.status})`);
+    error.status = response.status;
+    error.details = data?.details;
+    throw error;
+  }
+  return data;
+}
+
 export const api = {
   get: (path) => request(path),
   post: (path, body) => request(path, { method: 'POST', body }),
   patch: (path, body) => request(path, { method: 'PATCH', body }),
+  put: (path, body) => request(path, { method: 'PUT', body }),
+  upload,
 };

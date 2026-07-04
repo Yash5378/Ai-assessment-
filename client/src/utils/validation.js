@@ -74,6 +74,30 @@ export function validateSkills(value, { required = true } = {}) {
 export const parseSkills = (value) =>
   [...new Set(value.split(',').map((skill) => skill.trim().toLowerCase()).filter(Boolean))];
 
+const PHONE_PATTERN = /^[+\d][\d\s-]{6,14}$/;
+
+export function validatePhone(value, { required = true } = {}) {
+  const phone = String(value ?? '').trim();
+  if (!phone) return required ? 'Phone number is required' : '';
+  if (!PHONE_PATTERN.test(phone)) return 'Please provide a valid phone number';
+  return '';
+}
+
+const RESUME_EXTENSIONS = ['pdf', 'doc', 'docx'];
+const MAX_RESUME_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Mirrors the backend's multer constraints so the user gets feedback before
+ * the upload round-trips.
+ */
+export function validateResumeFile(file, { required = true } = {}) {
+  if (!file) return required ? 'Please attach your resume' : '';
+  const extension = file.name.split('.').pop().toLowerCase();
+  if (!RESUME_EXTENSIONS.includes(extension)) return 'Resume must be a PDF, DOC or DOCX file';
+  if (file.size > MAX_RESUME_BYTES) return 'Resume must be at most 5 MB';
+  return '';
+}
+
 /**
  * Runs a { field: () => message } map and returns only failing fields.
  */
