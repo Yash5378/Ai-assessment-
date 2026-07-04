@@ -35,6 +35,27 @@ const fileFilter = (req, file, cb) => {
   return cb(null, true);
 };
 
+// Magic-byte signatures per stored extension. The declared mimetype is
+// client-controlled, so after saving we verify the actual file content:
+// %PDF for PDFs, the OLE header for .doc, the ZIP header for .docx.
+const FILE_SIGNATURES = {
+  '.pdf': [Buffer.from('%PDF')],
+  '.doc': [Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])],
+  '.docx': [Buffer.from([0x50, 0x4b, 0x03, 0x04])],
+};
+
+async function hasValidSignature(file) {
+  const handle = await fs.promises.open(file.path, 'r');
+  try {
+    const header = Buffer.alloc(8);
+    await handle.read(header, 0, 8, 0);
+    const signatures = FILE_SIGNATURES[path.extname(file.filename)] ?? [];
+    return signatures.some((sig) => header.subarray(0, sig.length).equals(sig));
+  } finally {
+    await handle.close();
+  }
+}
+
 const uploadResume = multer({
   storage,
   fileFilter,
@@ -46,7 +67,7 @@ const uploadResume = multer({
  * by the global error handler instead of crashing the request.
  */
 function resumeUpload(req, res, next) {
-  uploadResume(req, res, (err) => {
+  uploadResume(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return next(ApiError.badRequest('Resume must be at most 5 MB'));
@@ -55,6 +76,21 @@ function resumeUpload(req, res, next) {
     }
     if (err) {
       return next(err); // ApiError from fileFilter, or unexpected
+    }
+
+    // Content check: a file whose bytes don't match its declared type is
+    // deleted immediately and rejected.
+    if (req.file) {
+      try {
+        if (!(await hasValidSignature(req.file))) {
+          await fs.promises.unlink(req.file.path).catch(() => {});
+          return next(
+            ApiError.badRequest('Resume content does not match its file type (PDF, DOC or DOCX)')
+          );
+        }
+      } catch (readErr) {
+        return next(readErr);
+      }
     }
     return next();
   });

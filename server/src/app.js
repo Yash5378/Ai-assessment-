@@ -6,6 +6,7 @@ const cookieParser = require('cookie-parser');
 
 const env = require('./config/env');
 const routes = require('./routes');
+const verifyOrigin = require('./middleware/verifyOrigin');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 /**
@@ -22,6 +23,7 @@ function createApp() {
 
   app.use(helmet());
   app.use(cors({ origin: env.clientOrigin, credentials: true }));
+  app.use(verifyOrigin);
   app.use(express.json({ limit: '100kb' }));
   app.use(cookieParser());
 
