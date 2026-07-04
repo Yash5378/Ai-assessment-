@@ -47,7 +47,12 @@ const jobBase = {
   employmentType: z.enum(EMPLOYMENT_TYPES, {
     errorMap: () => ({ message: `Employment type must be one of: ${EMPLOYMENT_TYPES.join(', ')}` }),
   }),
-  salaryRange: z.string().trim().max(100).optional().or(z.literal('').transform(() => undefined)),
+  salaryRange: z
+    .string()
+    .trim()
+    .max(100)
+    .optional()
+    .transform((value) => (value === '' ? undefined : value)),
 };
 
 const createJobSchema = z.object(jobBase);

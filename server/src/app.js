@@ -20,7 +20,7 @@ function createApp() {
   app.use(express.json({ limit: '100kb' }));
   app.use(cookieParser());
 
-  if (!env.isProduction) {
+  if (env.nodeEnv === 'development') {
     app.use(morgan('dev'));
   }
 
