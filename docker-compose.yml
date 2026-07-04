@@ -66,6 +66,13 @@ services:
         condition: service_healthy
     ports:
       - "${UI_PORT:-3000}:80"
+    healthcheck:
+      # 127.0.0.1 (not localhost): nginx binds IPv4 and alpine resolves
+      # localhost to ::1 first.
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
     restart: unless-stopped
 
 volumes:
