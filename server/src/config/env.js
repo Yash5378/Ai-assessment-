@@ -1,3 +1,5 @@
+const path = require('path');
+
 /**
  * Central place where all environment configuration is read and validated.
  * Nothing else in the codebase touches process.env directly.
@@ -28,6 +30,10 @@ const env = {
   },
 
   clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:3000',
+
+  // Where uploaded resumes are written. Docker points this at a named volume;
+  // locally (dev/tests) it defaults to an uploads/ dir in the project.
+  uploadDir: process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads'),
 
   // Secure cookies require HTTPS; kept opt-in so the assessment stack works
   // over plain http://localhost without silently dropping the auth cookie.

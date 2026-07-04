@@ -40,13 +40,27 @@ const SCHEMA = `
   );
 
   CREATE TABLE IF NOT EXISTS candidate_profiles (
-    user_id          INTEGER      PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    headline         VARCHAR(150) NOT NULL DEFAULT '',
-    skills           TEXT[]       NOT NULL DEFAULT '{}',
-    experience_years INTEGER      NOT NULL DEFAULT 0,
-    location         VARCHAR(100) NOT NULL DEFAULT '',
-    expected_salary  INTEGER,
-    updated_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    user_id             INTEGER      PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    headline            VARCHAR(150) NOT NULL DEFAULT '',
+    skills              TEXT[]       NOT NULL DEFAULT '{}',
+    experience_years    INTEGER      NOT NULL DEFAULT 0,
+    -- Onboarding (minimum info collected before a candidate reaches the app)
+    phone               VARCHAR(20)  NOT NULL DEFAULT '',
+    current_city        VARCHAR(100) NOT NULL DEFAULT '',
+    employment_status   VARCHAR(20)  NOT NULL DEFAULT 'FRESHER'
+                          CHECK (employment_status IN ('FRESHER', 'EXPERIENCED')),
+    resume_filename     VARCHAR(255),
+    resume_original_name VARCHAR(255),
+    onboarded           BOOLEAN      NOT NULL DEFAULT false,
+    -- Additional details filled in later from the profile section
+    current_company     VARCHAR(100) NOT NULL DEFAULT '',
+    current_ctc         INTEGER,
+    expected_ctc        INTEGER,
+    notice_period       VARCHAR(20),
+    current_designation VARCHAR(100) NOT NULL DEFAULT '',
+    industry            VARCHAR(100) NOT NULL DEFAULT '',
+    department          VARCHAR(100) NOT NULL DEFAULT '',
+    updated_at          TIMESTAMPTZ  NOT NULL DEFAULT NOW()
   );
 
   -- Upgrade path for databases created before job search fields existed
@@ -58,6 +72,41 @@ const SCHEMA = `
   ALTER TABLE jobs ADD COLUMN IF NOT EXISTS salary_min INTEGER;
   ALTER TABLE jobs ADD COLUMN IF NOT EXISTS salary_max INTEGER;
   ALTER TABLE jobs DROP COLUMN IF EXISTS salary_range;
+
+  -- Upgrade path for candidate_profiles created before onboarding/resume
+  -- fields existed (idempotent; CHECKs omitted here since zod validates).
+  ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS phone VARCHAR(20) NOT NULL DEFAULT '';
+  ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS current_city VARCHAR(100) NOT NULL DEFAULT '';
+  ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS employment_status VARCHAR(20) NOT NULL DEFAULT 'FRESHER';
+  ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS resume_filename VARCHAR(255);
+  ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS resume_original_name VARCHAR(255);
+  ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS onboarded BOOLEAN NOT NULL DEFAULT false;
+  ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS current_company VARCHAR(100) NOT NULL DEFAULT '';
+  ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS current_ctc INTEGER;
+  ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS expected_ctc INTEGER;
+  ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS notice_period VARCHAR(20);
+  ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS current_designation VARCHAR(100) NOT NULL DEFAULT '';
+  ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS industry VARCHAR(100) NOT NULL DEFAULT '';
+  ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS department VARCHAR(100) NOT NULL DEFAULT '';
+
+  -- Migrate renamed columns in place, then drop the originals. Guarded so it
+  -- is a no-op once the old columns are gone.
+  DO $$
+  BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_name = 'candidate_profiles' AND column_name = 'location') THEN
+      UPDATE candidate_profiles SET current_city = location
+        WHERE current_city = '' AND location <> '';
+      ALTER TABLE candidate_profiles DROP COLUMN location;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_name = 'candidate_profiles' AND column_name = 'expected_salary') THEN
+      UPDATE candidate_profiles SET expected_ctc = expected_salary
+        WHERE expected_ctc IS NULL AND expected_salary IS NOT NULL;
+      ALTER TABLE candidate_profiles DROP COLUMN expected_salary;
+    END IF;
+  END $$;
 
   CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
   CREATE INDEX IF NOT EXISTS idx_jobs_skills ON jobs USING GIN (skills);

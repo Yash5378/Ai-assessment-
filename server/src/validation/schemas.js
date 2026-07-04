@@ -10,6 +10,8 @@ const ROLES = ['HR', 'CANDIDATE'];
 const EMPLOYMENT_TYPES = ['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP'];
 const JOB_STATUSES = ['OPEN', 'CLOSED'];
 const REVIEWABLE_APPLICATION_STATUSES = ['UNDER_REVIEW', 'ACCEPTED', 'REJECTED'];
+const EMPLOYMENT_STATUSES = ['FRESHER', 'EXPERIENCED'];
+const NOTICE_PERIODS = ['IMMEDIATE', '15_DAYS', '30_DAYS', '60_DAYS', '90_DAYS'];
 
 const email = z
   .string({ required_error: 'Email is required' })
@@ -62,6 +64,22 @@ const salaryLpa = z.coerce
   .int('Must be a whole number')
   .min(0, 'Cannot be negative')
   .max(1000, 'Must be at most 1000 LPA');
+
+// Optional CTC/salary field: '' and null both become null (cleared).
+const optionalSalaryLpa = z
+  .union([z.literal(''), z.null(), z.undefined(), salaryLpa])
+  .transform((value) => (value === '' || value === undefined || value === null ? null : value));
+
+const phone = z
+  .string({ required_error: 'Phone number is required' })
+  .trim()
+  .regex(/^[+\d][\d\s-]{6,14}$/, 'Please provide a valid phone number');
+
+const employmentStatus = z.enum(EMPLOYMENT_STATUSES, {
+  errorMap: () => ({ message: `Employment status must be one of: ${EMPLOYMENT_STATUSES.join(', ')}` }),
+});
+
+const shortText = (max) => z.string().trim().max(max, `Must be at most ${max} characters`);
 
 /* --------------------------------- auth --------------------------------- */
 
@@ -156,15 +174,42 @@ const updateApplicationStatusSchema = z.object({
 
 /* ------------------------------- profiles ------------------------------- */
 
+// Collected before a candidate can reach the app. Resume presence is
+// enforced in the controller (multer populates req.file).
+const onboardingSchema = z.object({
+  phone,
+  currentCity: z
+    .string({ required_error: 'Current city is required' })
+    .trim()
+    .min(2, 'Current city must be at least 2 characters')
+    .max(100, 'Current city must be at most 100 characters'),
+  employmentStatus,
+});
+
+// Everything editable from the profile section (all optional; the profile
+// page can save a partial set).
 const profileSchema = z.object({
-  headline: z.string().trim().max(150, 'Headline must be at most 150 characters').default(''),
+  headline: shortText(150).default(''),
   skills: skillList(15).default([]),
   experienceYears: years.default(0),
-  location: z.string().trim().max(100, 'Location must be at most 100 characters').default(''),
-  expectedSalary: salaryLpa
-    .optional()
-    .nullable()
-    .transform((value) => value ?? null),
+  phone: z.union([z.literal(''), phone]).default(''),
+  currentCity: shortText(100).default(''),
+  employmentStatus: employmentStatus.default('FRESHER'),
+  currentCompany: shortText(100).default(''),
+  currentDesignation: shortText(100).default(''),
+  industry: shortText(100).default(''),
+  department: shortText(100).default(''),
+  currentCtc: optionalSalaryLpa,
+  expectedCtc: optionalSalaryLpa,
+  noticePeriod: z
+    .union([
+      z.literal(''),
+      z.enum(NOTICE_PERIODS, {
+        errorMap: () => ({ message: `Notice period must be one of: ${NOTICE_PERIODS.join(', ')}` }),
+      }),
+    ])
+    .default('')
+    .transform((value) => value || null),
 });
 
 // HR candidate search — every filter is optional.
@@ -189,10 +234,13 @@ module.exports = {
   jobSearchSchema,
   createApplicationSchema,
   updateApplicationStatusSchema,
+  onboardingSchema,
   profileSchema,
   candidateSearchSchema,
   idParamSchema,
   ROLES,
   EMPLOYMENT_TYPES,
+  EMPLOYMENT_STATUSES,
+  NOTICE_PERIODS,
   JOB_STATUSES,
 };
