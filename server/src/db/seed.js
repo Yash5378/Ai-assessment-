@@ -10,14 +10,24 @@ const TEST_USERS = [
   { name: 'Test Candidate', email: 'user@test.com', password: 'User@1234', role: 'CANDIDATE' },
 ];
 
-// Gives the seeded candidate a searchable profile so the HR "Find
-// Candidates" feature returns a hit on first run.
+// Gives the seeded candidate a searchable, already-onboarded profile so the
+// assessor can log in without hitting the onboarding gate and the HR "Find
+// Candidates" feature returns a hit on first run. No resume file is seeded,
+// so an HR resume download for this candidate returns 404 (expected).
 const TEST_CANDIDATE_PROFILE = {
   headline: 'Frontend developer with a passion for clean UIs',
   skills: ['react', 'javascript', 'css', 'html'],
   experienceYears: 3,
-  location: 'Bengaluru, India',
-  expectedSalary: 18,
+  phone: '+91 90000 00000',
+  currentCity: 'Bengaluru, India',
+  employmentStatus: 'EXPERIENCED',
+  currentCompany: 'BrightApps',
+  currentDesignation: 'Frontend Developer',
+  currentCtc: 14,
+  expectedCtc: 18,
+  noticePeriod: '30_DAYS',
+  industry: 'Information Technology',
+  department: 'Engineering',
 };
 
 const SAMPLE_JOBS = [
@@ -91,13 +101,30 @@ async function ensureCandidateProfile() {
   const { rows } = await pool.query('SELECT id FROM users WHERE email = $1', [
     TEST_USERS[1].email,
   ]);
-  const profile = TEST_CANDIDATE_PROFILE;
+  const p = TEST_CANDIDATE_PROFILE;
   await pool.query(
     `INSERT INTO candidate_profiles
-       (user_id, headline, skills, experience_years, location, expected_salary)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     ON CONFLICT (user_id) DO NOTHING`,
-    [rows[0].id, profile.headline, profile.skills, profile.experienceYears, profile.location, profile.expectedSalary]
+       (user_id, headline, skills, experience_years, phone, current_city,
+        employment_status, onboarded, current_company, current_designation,
+        current_ctc, expected_ctc, notice_period, industry, department)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9, $10, $11, $12, $13, $14)
+     ON CONFLICT (user_id) DO UPDATE SET onboarded = true`,
+    [
+      rows[0].id,
+      p.headline,
+      p.skills,
+      p.experienceYears,
+      p.phone,
+      p.currentCity,
+      p.employmentStatus,
+      p.currentCompany,
+      p.currentDesignation,
+      p.currentCtc,
+      p.expectedCtc,
+      p.noticePeriod,
+      p.industry,
+      p.department,
+    ]
   );
 }
 

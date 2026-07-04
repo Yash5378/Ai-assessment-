@@ -14,7 +14,7 @@ async function searchCandidates(filters = {}) {
   }
   if (filters.location) {
     values.push(`%${filters.location}%`);
-    conditions.push(`p.location ILIKE $${values.length}`);
+    conditions.push(`p.current_city ILIKE $${values.length}`);
   }
   if (filters.minExperience !== undefined) {
     values.push(filters.minExperience);
@@ -25,7 +25,13 @@ async function searchCandidates(filters = {}) {
     `SELECT u.id, u.name, u.email,
             p.headline, p.skills,
             p.experience_years AS "experienceYears",
-            p.location, p.expected_salary AS "expectedSalary",
+            p.current_city AS "currentCity",
+            p.employment_status AS "employmentStatus",
+            p.current_company AS "currentCompany",
+            p.current_designation AS "currentDesignation",
+            p.expected_ctc AS "expectedCtc",
+            p.notice_period AS "noticePeriod",
+            (p.resume_filename IS NOT NULL) AS "hasResume",
             p.updated_at AS "profileUpdatedAt"
      FROM users u
      JOIN candidate_profiles p ON p.user_id = u.id

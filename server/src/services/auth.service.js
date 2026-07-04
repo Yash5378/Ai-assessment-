@@ -4,6 +4,13 @@ const { hashPassword, verifyPassword } = require('../utils/password');
 
 const PUBLIC_USER_FIELDS = 'id, name, email, role, created_at AS "createdAt"';
 
+// Only candidates go through onboarding; HR/recruiters are "onboarded" by
+// definition. The client uses this flag to gate candidate routes.
+const withOnboarded = (user, profileOnboarded) => ({
+  ...user,
+  onboarded: user.role === 'CANDIDATE' ? Boolean(profileOnboarded) : true,
+});
+
 /**
  * Registers an account as either HR (recruiter) or CANDIDATE. The role is
  * whitelisted by the zod enum before it reaches this function, so nothing
@@ -22,7 +29,8 @@ async function register({ name, email, password, role }) {
      RETURNING ${PUBLIC_USER_FIELDS}`,
     [name, email, passwordHash, role]
   );
-  return result.rows[0];
+  // A brand-new candidate has no profile yet, so onboarded is false.
+  return withOnboarded(result.rows[0], false);
 }
 
 /**
@@ -31,7 +39,10 @@ async function register({ name, email, password, role }) {
  */
 async function login({ email, password }) {
   const result = await db.query(
-    'SELECT id, name, email, role, password_hash FROM users WHERE email = $1',
+    `SELECT u.id, u.name, u.email, u.role, u.password_hash, p.onboarded
+     FROM users u
+     LEFT JOIN candidate_profiles p ON p.user_id = u.id
+     WHERE u.email = $1`,
     [email]
   );
   const user = result.rows[0];
@@ -41,16 +52,23 @@ async function login({ email, password }) {
     throw ApiError.unauthorized('Invalid email or password');
   }
 
-  const { password_hash: _omitted, ...publicUser } = user;
-  return publicUser;
+  const { password_hash: _omitted, onboarded, ...publicUser } = user;
+  return withOnboarded(publicUser, onboarded);
 }
 
 async function getUserById(id) {
-  const result = await db.query(`SELECT ${PUBLIC_USER_FIELDS} FROM users WHERE id = $1`, [id]);
+  const result = await db.query(
+    `SELECT u.id, u.name, u.email, u.role, u.created_at AS "createdAt", p.onboarded
+     FROM users u
+     LEFT JOIN candidate_profiles p ON p.user_id = u.id
+     WHERE u.id = $1`,
+    [id]
+  );
   if (result.rows.length === 0) {
     throw ApiError.unauthorized('Account no longer exists');
   }
-  return result.rows[0];
+  const { onboarded, ...publicUser } = result.rows[0];
+  return withOnboarded(publicUser, onboarded);
 }
 
 module.exports = { register, login, getUserById };
