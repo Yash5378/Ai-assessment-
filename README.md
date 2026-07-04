@@ -41,7 +41,7 @@ docker compose up --build
 
 Then open **http://localhost:3000**.
 
-The API is also reachable directly at http://localhost:5000/api (e.g. `/api/health`).
+The API is also reachable directly at http://localhost:5000/api (e.g. `/api/health`), and **interactive API documentation (Swagger UI)** is served at **http://localhost:3000/api/docs** (spec JSON at `/api/docs.json`).
 
 > No `.env` file is required — safe development defaults are baked into `docker-compose.yml`. To override any of them (ports, DB credentials, JWT secret), copy `.env.example` to `.env` and edit it.
 
@@ -94,6 +94,29 @@ Role-based routing is enforced on both sides: a candidate visiting `/hr` is redi
 - All SQL is parameterized — including every search filter (skills use array-overlap parameters, never string concatenation); input is validated with zod on the server and mirrored client-side; request bodies capped at 100 KB.
 - Login/register are rate-limited; login failures return one generic message (no account enumeration).
 - No secrets in code — everything is environment-driven with development-only defaults; helmet sets standard security headers.
+
+## API Reference
+
+Full interactive docs live at **`/api/docs`** (Swagger UI). Summary:
+
+| Method & Path | Access | Purpose |
+| --- | --- | --- |
+| `POST /api/auth/register` | public | Create HR or Candidate account (role whitelisted) |
+| `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/me` | public / auth | Session management (httpOnly JWT cookie) |
+| `GET /api/jobs` | auth | Search jobs: title, company, location, skills, maxExperience, minSalary |
+| `POST /api/jobs` · `PATCH /api/jobs/:id` | HR (owner) | Create / update / open–close a job |
+| `GET /api/jobs/:id` | auth | Job detail (candidates see OPEN only) |
+| `POST /api/jobs/:id/applications` | Candidate | Apply (optional cover letter, one per job) |
+| `GET /api/jobs/:id/applications` | HR (owner) | Applicants with resume flags |
+| `GET /api/applications/mine` | Candidate | My applications + status |
+| `PATCH /api/applications/:id/status` | HR (owner) | UNDER_REVIEW / ACCEPTED / REJECTED |
+| `GET/PUT /api/profile/me` | Candidate | Full profile read/update |
+| `POST /api/profile/onboarding` | Candidate | Complete onboarding (multipart, required resume) |
+| `POST/GET /api/profile/resume` | Candidate | Replace / download own resume |
+| `GET /api/candidates` | HR | Case-insensitive talent search (skills, location, min/max experience) |
+| `GET /api/candidates/:id/resume` | HR | Download a candidate's resume |
+| `GET /api/stats` | HR | Dashboard counters |
+| `GET /api/health` · `GET /api/docs` | public | Liveness probe · interactive docs |
 
 ## Running Tests
 
