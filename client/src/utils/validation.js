@@ -45,6 +45,36 @@ export function validateLength(value, label, min, max) {
 }
 
 /**
+ * Optional whole number within [min, max]. Empty input is valid unless
+ * required is set.
+ */
+export function validateNumber(value, label, { min = 0, max = 50, required = false } = {}) {
+  const text = String(value ?? '').trim();
+  if (!text) return required ? `${label} is required` : '';
+  const number = Number(text);
+  if (!Number.isInteger(number)) return `${label} must be a whole number`;
+  if (number < min) return `${label} cannot be less than ${min}`;
+  if (number > max) return `${label} cannot be more than ${max}`;
+  return '';
+}
+
+/**
+ * Comma-separated skills ("react, node.js") — at least one when required,
+ * each at most 30 characters.
+ */
+export function validateSkills(value, { required = true } = {}) {
+  const skills = value.split(',').map((skill) => skill.trim()).filter(Boolean);
+  if (skills.length === 0) return required ? 'Add at least one skill (comma-separated)' : '';
+  if (skills.length > 15) return 'At most 15 skills allowed';
+  const tooLong = skills.find((skill) => skill.length > 30);
+  if (tooLong) return `"${tooLong}" is too long (max 30 characters)`;
+  return '';
+}
+
+export const parseSkills = (value) =>
+  [...new Set(value.split(',').map((skill) => skill.trim().toLowerCase()).filter(Boolean))];
+
+/**
  * Runs a { field: () => message } map and returns only failing fields.
  */
 export function collectErrors(checks) {

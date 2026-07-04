@@ -6,7 +6,8 @@ import Alert from '../../components/Alert';
 import EmptyState from '../../components/EmptyState';
 import StatusBadge from '../../components/StatusBadge';
 import JobForm from '../../components/JobForm';
-import { formatEmploymentType, formatDate } from '../../utils/format';
+import SkillChips from '../../components/SkillChips';
+import { formatEmploymentType, formatDate, formatSalary, formatExperience } from '../../utils/format';
 
 export default function ManageJobs() {
   const { user } = useAuth();
@@ -92,10 +93,15 @@ export default function ManageJobs() {
                     <JobForm
                       initialValues={{
                         title: job.title,
+                        company: job.company,
                         description: job.description,
                         location: job.location,
                         employmentType: job.employmentType,
-                        salaryRange: job.salaryRange ?? '',
+                        skills: (job.skills ?? []).join(', '),
+                        experienceMin: String(job.experienceMin ?? 0),
+                        experienceMax: job.experienceMax == null ? '' : String(job.experienceMax),
+                        salaryMin: job.salaryMin == null ? '' : String(job.salaryMin),
+                        salaryMax: job.salaryMax == null ? '' : String(job.salaryMax),
                       }}
                       onSubmit={handleUpdate(job.id)}
                       onCancel={() => setEditingJobId(null)}
@@ -109,12 +115,15 @@ export default function ManageJobs() {
                         {job.title} <StatusBadge status={job.status} />
                       </h3>
                       <p className="card-meta">
+                        <span>{job.company}</span>
                         <span>{job.location}</span>
                         <span>{formatEmploymentType(job.employmentType)}</span>
-                        {job.salaryRange && <span>{job.salaryRange}</span>}
+                        <span>{formatExperience(job.experienceMin, job.experienceMax)}</span>
+                        <span>{formatSalary(job.salaryMin, job.salaryMax)}</span>
                         <span>Posted {formatDate(job.createdAt)}</span>
                         {!isOwner && <span>Posted by another HR user</span>}
                       </p>
+                      <SkillChips skills={job.skills} />
                     </div>
                     {isOwner && (
                       <div className="card-actions">

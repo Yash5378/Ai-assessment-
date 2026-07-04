@@ -302,6 +302,32 @@ textarea.input { resize: vertical; min-height: 110px; }
 /* ---------------------------------------------------------------------------
    Empty states & misc
 --------------------------------------------------------------------------- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.chip {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: #eef1fd;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.filter-card { margin-bottom: 1.25rem; }
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
 .empty-state {
   text-align: center;
   padding: 3rem 1rem;

@@ -4,11 +4,13 @@ import { useAuth } from '../context/AuthContext';
 const CANDIDATE_LINKS = [
   { to: '/jobs', label: 'Browse Jobs' },
   { to: '/my-applications', label: 'My Applications' },
+  { to: '/profile', label: 'My Profile' },
 ];
 
 const HR_LINKS = [
   { to: '/hr', label: 'Dashboard', end: true },
   { to: '/hr/jobs', label: 'Manage Jobs' },
+  { to: '/hr/candidates', label: 'Find Candidates' },
 ];
 
 export default function Navbar() {

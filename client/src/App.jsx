@@ -8,9 +8,11 @@ import NotFound from './pages/NotFound';
 import Jobs from './pages/candidate/Jobs';
 import JobDetail from './pages/candidate/JobDetail';
 import MyApplications from './pages/candidate/MyApplications';
+import Profile from './pages/candidate/Profile';
 import Dashboard from './pages/hr/Dashboard';
 import ManageJobs from './pages/hr/ManageJobs';
 import JobApplicants from './pages/hr/JobApplicants';
+import FindCandidates from './pages/hr/FindCandidates';
 
 /**
  * Sends each visitor to the right home: HR to their dashboard, candidates
@@ -47,11 +49,13 @@ export default function App() {
           <Route path="/jobs" element={<ProtectedRoute role="CANDIDATE"><Jobs /></ProtectedRoute>} />
           <Route path="/jobs/:id" element={<ProtectedRoute role="CANDIDATE"><JobDetail /></ProtectedRoute>} />
           <Route path="/my-applications" element={<ProtectedRoute role="CANDIDATE"><MyApplications /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute role="CANDIDATE"><Profile /></ProtectedRoute>} />
 
           {/* HR area */}
           <Route path="/hr" element={<ProtectedRoute role="HR"><Dashboard /></ProtectedRoute>} />
           <Route path="/hr/jobs" element={<ProtectedRoute role="HR"><ManageJobs /></ProtectedRoute>} />
           <Route path="/hr/jobs/:id/applicants" element={<ProtectedRoute role="HR"><JobApplicants /></ProtectedRoute>} />
+          <Route path="/hr/candidates" element={<ProtectedRoute role="HR"><FindCandidates /></ProtectedRoute>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

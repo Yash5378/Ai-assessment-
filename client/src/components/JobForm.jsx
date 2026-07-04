@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import FormField from './FormField';
 import Alert from './Alert';
-import { validateLength, collectErrors } from '../utils/validation';
+import {
+  validateLength,
+  validateNumber,
+  validateSkills,
+  parseSkills,
+  collectErrors,
+} from '../utils/validation';
 
 const EMPLOYMENT_TYPES = [
   { value: 'FULL_TIME', label: 'Full-time' },
@@ -12,11 +18,18 @@ const EMPLOYMENT_TYPES = [
 
 const EMPTY_FORM = {
   title: '',
-  description: '',
+  company: '',
   location: '',
   employmentType: 'FULL_TIME',
-  salaryRange: '',
+  skills: '',
+  experienceMin: '0',
+  experienceMax: '',
+  salaryMin: '',
+  salaryMax: '',
+  description: '',
 };
+
+const toNumberOrUndefined = (value) => (String(value).trim() === '' ? undefined : Number(value));
 
 /**
  * Shared create/edit job form for HR. Calls onSubmit(values) and lets the
@@ -40,9 +53,27 @@ export default function JobForm({ initialValues, onSubmit, onCancel, submitLabel
 
     const fieldErrors = collectErrors({
       title: () => validateLength(form.title, 'Title', 3, 150),
-      description: () => validateLength(form.description, 'Description', 10, 5000),
+      company: () => validateLength(form.company, 'Company', 2, 100),
       location: () => validateLength(form.location, 'Location', 2, 100),
+      skills: () => validateSkills(form.skills),
+      experienceMin: () => validateNumber(form.experienceMin, 'Min experience', { required: true }),
+      experienceMax: () => validateNumber(form.experienceMax, 'Max experience'),
+      salaryMin: () => validateNumber(form.salaryMin, 'Min salary', { max: 1000 }),
+      salaryMax: () => validateNumber(form.salaryMax, 'Max salary', { max: 1000 }),
+      description: () => validateLength(form.description, 'Description', 10, 5000),
     });
+
+    const expMin = toNumberOrUndefined(form.experienceMin);
+    const expMax = toNumberOrUndefined(form.experienceMax);
+    const salMin = toNumberOrUndefined(form.salaryMin);
+    const salMax = toNumberOrUndefined(form.salaryMax);
+    if (!fieldErrors.experienceMax && expMin !== undefined && expMax !== undefined && expMin > expMax) {
+      fieldErrors.experienceMax = 'Max experience cannot be less than min';
+    }
+    if (!fieldErrors.salaryMax && salMin !== undefined && salMax !== undefined && salMin > salMax) {
+      fieldErrors.salaryMax = 'Max salary cannot be less than min';
+    }
+
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors);
       return;
@@ -52,10 +83,15 @@ export default function JobForm({ initialValues, onSubmit, onCancel, submitLabel
     try {
       await onSubmit({
         title: form.title.trim(),
-        description: form.description.trim(),
+        company: form.company.trim(),
         location: form.location.trim(),
         employmentType: form.employmentType,
-        salaryRange: form.salaryRange.trim(),
+        skills: parseSkills(form.skills),
+        experienceMin: expMin ?? 0,
+        experienceMax: expMax ?? null,
+        salaryMin: salMin ?? null,
+        salaryMax: salMax ?? null,
+        description: form.description.trim(),
       });
     } catch (err) {
       setApiError(err.message);
@@ -69,15 +105,20 @@ export default function JobForm({ initialValues, onSubmit, onCancel, submitLabel
       <Alert>{apiError}</Alert>
 
       <div className="form-grid">
-        <div className="full-width">
-          <FormField
-            label="Job title"
-            name="title"
-            value={form.title}
-            onChange={handleChange}
-            error={errors.title}
-          />
-        </div>
+        <FormField
+          label="Job title"
+          name="title"
+          value={form.title}
+          onChange={handleChange}
+          error={errors.title}
+        />
+        <FormField
+          label="Company"
+          name="company"
+          value={form.company}
+          onChange={handleChange}
+          error={errors.company}
+        />
         <FormField
           label="Location"
           name="location"
@@ -100,13 +141,54 @@ export default function JobForm({ initialValues, onSubmit, onCancel, submitLabel
         </FormField>
         <div className="full-width">
           <FormField
-            label="Salary range (optional)"
-            name="salaryRange"
-            placeholder="e.g. ₹20L – ₹32L per year"
-            value={form.salaryRange}
+            label="Required skills (comma-separated)"
+            name="skills"
+            placeholder="e.g. react, node.js, postgresql"
+            value={form.skills}
             onChange={handleChange}
+            error={errors.skills}
           />
         </div>
+        <FormField
+          label="Min experience (years)"
+          name="experienceMin"
+          type="number"
+          min="0"
+          max="50"
+          value={form.experienceMin}
+          onChange={handleChange}
+          error={errors.experienceMin}
+        />
+        <FormField
+          label="Max experience (years, optional)"
+          name="experienceMax"
+          type="number"
+          min="0"
+          max="50"
+          value={form.experienceMax}
+          onChange={handleChange}
+          error={errors.experienceMax}
+        />
+        <FormField
+          label="Min salary (₹ LPA, optional)"
+          name="salaryMin"
+          type="number"
+          min="0"
+          max="1000"
+          value={form.salaryMin}
+          onChange={handleChange}
+          error={errors.salaryMin}
+        />
+        <FormField
+          label="Max salary (₹ LPA, optional)"
+          name="salaryMax"
+          type="number"
+          min="0"
+          max="1000"
+          value={form.salaryMax}
+          onChange={handleChange}
+          error={errors.salaryMax}
+        />
         <div className="full-width">
           <FormField
             label="Description"

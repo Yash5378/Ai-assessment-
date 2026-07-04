@@ -3,8 +3,9 @@ import { Link, useParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import Alert from '../../components/Alert';
 import FormField from '../../components/FormField';
+import SkillChips from '../../components/SkillChips';
 import { validateLength, collectErrors } from '../../utils/validation';
-import { formatEmploymentType, formatDate } from '../../utils/format';
+import { formatEmploymentType, formatDate, formatSalary, formatExperience } from '../../utils/format';
 
 export default function JobDetail() {
   const { id } = useParams();
@@ -70,11 +71,14 @@ export default function JobDetail() {
       <div className="card">
         <h1>{job.title}</h1>
         <p className="card-meta">
+          <span>{job.company}</span>
           <span>{job.location}</span>
           <span>{formatEmploymentType(job.employmentType)}</span>
-          {job.salaryRange && <span>{job.salaryRange}</span>}
+          <span>{formatExperience(job.experienceMin, job.experienceMax)}</span>
+          <span>{formatSalary(job.salaryMin, job.salaryMax)}</span>
           <span>Posted {formatDate(job.createdAt)}</span>
         </p>
+        <SkillChips skills={job.skills} />
         <p className="description-text">{job.description}</p>
       </div>
 
