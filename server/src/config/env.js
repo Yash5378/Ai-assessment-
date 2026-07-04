@@ -29,6 +29,10 @@ const env = {
 
   clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:3000',
 
+  // Secure cookies require HTTPS; kept opt-in so the assessment stack works
+  // over plain http://localhost without silently dropping the auth cookie.
+  cookieSecure: process.env.COOKIE_SECURE === 'true',
+
   isProduction: (process.env.NODE_ENV || 'development') === 'production',
 };
 
