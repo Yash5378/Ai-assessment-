@@ -25,6 +25,7 @@ Built as a Claude Code assessment project with a focus on clean architecture, se
 - **client** — React (Vite) single-page app, served by nginx. nginx also proxies `/api/*` to the backend, so the UI and API share one origin and the httpOnly auth cookie works without any CORS complexity.
 - **server** — Node.js/Express REST API in a layered structure (routes → controllers → services → db). Runs migrations and seeds test data automatically on startup.
 - **db** — PostgreSQL 16 with a named volume for persistence. **Not** exposed to the host: only the API can reach it, and it can never conflict with a Postgres already running on your machine.
+- **Uploaded resumes** are stored on a second named volume (`uploads_data`) mounted into the API container, so they persist across restarts and rebuilds.
 
 Startup order is health-gated: the API waits for Postgres to be healthy, the UI waits for the API to be healthy.
 
@@ -62,14 +63,15 @@ You can also register new accounts via the UI — the signup page has **Candidat
 ### HR / Recruiter (log in as `admin@test.com` or sign up on the HR tab)
 - **Dashboard** (`/hr`) — live stats: jobs posted, open positions, applications received, awaiting review.
 - **Manage Jobs** (`/hr/jobs`) — post new openings (title, company, location, employment type, required skills, experience range, salary range in ₹ LPA), edit them, and close/reopen them. HR users can only manage jobs **they** created — jobs posted by other HR users are visible but read-only.
-- **Find Candidates** (`/hr/candidates`) — search candidates by **skills**, location and minimum experience; results show their profile and a contact link. (Candidates appear once they publish a profile.)
+- **Find Candidates** (`/hr/candidates`) — search candidates by **skills**, location and minimum experience; results show their current role, expected CTC, a contact link and a **resume download** (when the candidate uploaded one). Applicant lists also expose a resume download per candidate.
 - **Applicants** (`/hr/jobs/:id/applicants`) — see every candidate who applied, read their cover letter, and move the application through the pipeline: *Submitted → Under review → Accepted / Rejected*.
 
 ### Candidate (log in as `user@test.com` or sign up on the Candidate tab)
+- **Onboarding** (`/onboarding`) — a **new** candidate must complete a short profile before reaching the app: phone, current city, fresher/experienced, and a **resume upload** (PDF/DOC/DOCX, max 5 MB). Until this is done, all candidate pages redirect here. (The seeded `user@test.com` is already onboarded, so the assessor logs straight in.)
 - **Browse Jobs** (`/jobs`) — search open positions by **role/title, skills, location, company, your experience and minimum salary**, with an "Applied" indicator on jobs you already applied to.
 - **Job detail & apply** (`/jobs/:id`) — full description with skill tags, experience and salary info; submit a cover-letter application (one per job, enforced in both API and DB).
 - **My Applications** (`/my-applications`) — track the live status of every application.
-- **My Profile** (`/profile`) — publish your headline, skills, experience, location and expected salary; this is what recruiters search when finding candidates.
+- **My Profile** (`/profile`) — the full profile in sections: *Basics* (headline, skills, phone, city, experience), *Current role* (current company, designation, current CTC, notice period, industry, department), *Expectations* (expected CTC), and *Resume* (download or replace). Skills and these details are what recruiters search on.
 
 Role-based routing is enforced on both sides: a candidate visiting `/hr` is redirected away, and the API independently rejects any request outside the caller's role (401/403).
 
@@ -80,7 +82,8 @@ Role-based routing is enforced on both sides: a candidate visiting `/hr` is redi
 | Frontend  | React 18, React Router 6, Vite 7 (build), nginx (serving + API proxy) |
 | Backend   | Node.js 20, Express 4, zod (validation), jsonwebtoken, bcryptjs, helmet, express-rate-limit |
 | Database  | PostgreSQL 16 (`pg` driver, parameterized queries, no ORM) |
-| Testing   | Jest + supertest (server), Vitest (client) — 81 tests |
+| Testing   | Jest + supertest (server), Vitest (client) — 106 tests |
+| Uploads   | multer (resume upload: PDF/DOC/DOCX, 5 MB cap, server-generated filenames) |
 | DevOps    | Docker Compose, multi-stage builds, health-gated startup |
 
 ## Security Highlights
@@ -133,3 +136,5 @@ Intentionally scoped out to keep the assessment focused:
 - No file uploads — applications are cover-letter text rather than résumé attachments.
 - Candidates cannot withdraw or edit an application once submitted.
 - Recruiter signup is open (anyone may register as HR). In production this would be gated behind company-domain verification or an admin approval step.
+- The seeded `user@test.com` candidate is pre-onboarded but has **no resume file** (seeding cannot fabricate a real document), so an HR resume download for that specific account returns 404. Onboard a fresh candidate to exercise the full resume flow.
+- Resumes are stored on the local Docker volume; a production system would use object storage (e.g. S3) with signed URLs and virus scanning.

@@ -5,6 +5,7 @@ const {
   jobSearchSchema,
   createApplicationSchema,
   candidateSearchSchema,
+  onboardingSchema,
   profileSchema,
   idParamSchema,
 } = require('../../src/validation/schemas');
@@ -122,22 +123,61 @@ describe('jobSearchSchema (query params)', () => {
   });
 });
 
+describe('onboardingSchema', () => {
+  const valid = { phone: '+91 98765 43210', currentCity: 'Mumbai', employmentStatus: 'EXPERIENCED' };
+
+  it('accepts valid onboarding info', () => {
+    expect(onboardingSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it.each([['abc'], ['12'], ['++9999']])('rejects an invalid phone %p', (phone) => {
+    expect(onboardingSchema.safeParse({ ...valid, phone }).success).toBe(false);
+  });
+
+  it('rejects an unknown employment status', () => {
+    expect(onboardingSchema.safeParse({ ...valid, employmentStatus: 'INTERN' }).success).toBe(false);
+  });
+
+  it('rejects a too-short city', () => {
+    expect(onboardingSchema.safeParse({ ...valid, currentCity: 'x' }).success).toBe(false);
+  });
+});
+
 describe('profileSchema', () => {
   it('applies defaults for an empty payload', () => {
     const result = profileSchema.parse({});
-    expect(result).toMatchObject({ headline: '', skills: [], experienceYears: 0, location: '' });
-    expect(result.expectedSalary).toBeNull();
+    expect(result).toMatchObject({
+      headline: '',
+      skills: [],
+      experienceYears: 0,
+      employmentStatus: 'FRESHER',
+      currentCompany: '',
+    });
+    expect(result.currentCtc).toBeNull();
+    expect(result.expectedCtc).toBeNull();
+    expect(result.noticePeriod).toBeNull();
   });
 
-  it('normalizes skills and coerces numbers', () => {
+  it('normalizes skills and coerces CTC numbers', () => {
     const result = profileSchema.parse({
       skills: [' React ', 'CSS'],
       experienceYears: '3',
-      expectedSalary: '18',
+      currentCtc: '14',
+      expectedCtc: '18',
     });
     expect(result.skills).toEqual(['react', 'css']);
     expect(result.experienceYears).toBe(3);
-    expect(result.expectedSalary).toBe(18);
+    expect(result.currentCtc).toBe(14);
+    expect(result.expectedCtc).toBe(18);
+  });
+
+  it('clears an empty CTC to null', () => {
+    expect(profileSchema.parse({ expectedCtc: '' }).expectedCtc).toBeNull();
+  });
+
+  it('accepts a valid notice period and rejects an invalid one', () => {
+    expect(profileSchema.parse({ noticePeriod: '30_DAYS' }).noticePeriod).toBe('30_DAYS');
+    expect(profileSchema.safeParse({ noticePeriod: 'SOON' }).success).toBe(false);
   });
 
   it('rejects negative experience', () => {

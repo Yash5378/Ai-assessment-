@@ -4,6 +4,8 @@ import {
   validateEmail,
   validatePassword,
   validateLength,
+  validatePhone,
+  validateResumeFile,
   collectErrors,
 } from './validation';
 
@@ -40,6 +42,41 @@ describe('validateName / validateLength', () => {
   it('enforces min and max lengths', () => {
     expect(validateLength('short', 'Cover letter', 20, 3000)).toMatch(/at least 20/);
     expect(validateLength('x'.repeat(30), 'Cover letter', 20, 3000)).toBe('');
+  });
+});
+
+describe('validatePhone', () => {
+  it('accepts a valid phone', () => {
+    expect(validatePhone('+91 98765 43210')).toBe('');
+  });
+
+  it.each(['abc', '12', ''])('rejects %p', (value) => {
+    expect(validatePhone(value)).not.toBe('');
+  });
+
+  it('is optional when required=false', () => {
+    expect(validatePhone('', { required: false })).toBe('');
+  });
+});
+
+describe('validateResumeFile', () => {
+  const makeFile = (name, size) => ({ name, size });
+
+  it('accepts a small PDF', () => {
+    expect(validateResumeFile(makeFile('cv.pdf', 1024))).toBe('');
+  });
+
+  it('rejects an unsupported extension', () => {
+    expect(validateResumeFile(makeFile('cv.txt', 1024))).toMatch(/PDF, DOC or DOCX/);
+  });
+
+  it('rejects a file over 5 MB', () => {
+    expect(validateResumeFile(makeFile('cv.pdf', 6 * 1024 * 1024))).toMatch(/5 MB/);
+  });
+
+  it('requires a file by default', () => {
+    expect(validateResumeFile(null)).not.toBe('');
+    expect(validateResumeFile(null, { required: false })).toBe('');
   });
 });
 

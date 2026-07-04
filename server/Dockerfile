@@ -11,6 +11,10 @@ RUN npm ci --omit=dev
 
 COPY src ./src
 
+# Resume uploads are written here; a compose volume mounts over it for
+# persistence. Create it owned by the unprivileged runtime user.
+RUN mkdir -p /app/uploads && chown -R node:node /app/uploads
+
 # Run as the unprivileged user that ships with the node image.
 USER node
 

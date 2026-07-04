@@ -11,6 +11,9 @@ dist/
 build/
 coverage/
 
+# Uploaded files (local dev; Docker uses a named volume)
+server/uploads/
+
 # Logs
 *.log
 npm-debug.log*

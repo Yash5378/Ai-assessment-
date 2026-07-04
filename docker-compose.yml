@@ -40,6 +40,10 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production-9f8e7d6c5b4a}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
       CLIENT_ORIGIN: http://localhost:${UI_PORT:-3000}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      # Persist uploaded resumes across container rebuilds/restarts.
+      - uploads_data:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -67,3 +71,5 @@ services:
 volumes:
   # Named volume keeps database data across `docker compose down` / `up`.
   db_data:
+  # Keeps uploaded resume files across `docker compose down` / `up`.
+  uploads_data:
