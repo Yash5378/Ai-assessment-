@@ -6,9 +6,14 @@ import EmptyState from '../../components/EmptyState';
 import StatusBadge from '../../components/StatusBadge';
 import { formatEmploymentType, formatDate } from '../../utils/format';
 
+// Withdrawal only makes sense while the application is still in play.
+const WITHDRAWABLE_STATUSES = ['SUBMITTED', 'UNDER_REVIEW'];
+
 export default function MyApplications() {
   const [applications, setApplications] = useState(null);
   const [error, setError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [withdrawingId, setWithdrawingId] = useState(null);
 
   useEffect(() => {
     api
@@ -16,6 +21,24 @@ export default function MyApplications() {
       .then((data) => setApplications(data.applications))
       .catch((err) => setError(err.message));
   }, []);
+
+  const handleWithdraw = async (application) => {
+    const confirmed = window.confirm(
+      `Withdraw your application for "${application.jobTitle}"? You can apply again later while the job is open.`
+    );
+    if (!confirmed) return;
+
+    setActionError('');
+    setWithdrawingId(application.id);
+    try {
+      await api.delete(`/applications/${application.id}`);
+      setApplications((previous) => previous.filter((a) => a.id !== application.id));
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setWithdrawingId(null);
+    }
+  };
 
   if (error)
     return (
@@ -33,6 +56,8 @@ export default function MyApplications() {
           <p className="muted">Track the status of every job you applied to</p>
         </div>
       </div>
+
+      <Alert>{actionError}</Alert>
 
       {applications.length === 0 ? (
         <EmptyState
@@ -52,7 +77,19 @@ export default function MyApplications() {
                     <span>Applied {formatDate(application.createdAt)}</span>
                   </p>
                 </div>
-                <StatusBadge status={application.status} />
+                <div className="card-actions">
+                  <StatusBadge status={application.status} />
+                  {WITHDRAWABLE_STATUSES.includes(application.status) && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={withdrawingId === application.id}
+                      onClick={() => handleWithdraw(application)}
+                    >
+                      {withdrawingId === application.id ? 'Withdrawing…' : 'Withdraw'}
+                    </button>
+                  )}
+                </div>
               </div>
             </article>
           ))}

@@ -15,4 +15,9 @@ const updateStatus = asyncHandler(async (req, res) => {
   res.json({ application });
 });
 
-module.exports = { listMine, updateStatus };
+const withdraw = asyncHandler(async (req, res) => {
+  await applicationsService.withdrawApplication(req.user, req.params.id);
+  res.json({ message: 'Application withdrawn' });
+});
+
+module.exports = { listMine, updateStatus, withdraw };

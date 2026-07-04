@@ -95,9 +95,32 @@ async function updateApplicationStatus(user, applicationId, status) {
   return updated.rows[0];
 }
 
+/**
+ * A candidate may withdraw their own application while it is still in play
+ * (SUBMITTED or UNDER_REVIEW). Decided applications are immutable history.
+ * Withdrawing frees the unique slot, so the candidate may re-apply later.
+ */
+async function withdrawApplication(user, applicationId) {
+  const result = await db.query('SELECT candidate_id, status FROM applications WHERE id = $1', [
+    applicationId,
+  ]);
+  const application = result.rows[0];
+  if (!application) {
+    throw ApiError.notFound('Application not found');
+  }
+  if (application.candidate_id !== user.id) {
+    throw ApiError.forbidden('You can only withdraw your own applications');
+  }
+  if (application.status === 'ACCEPTED' || application.status === 'REJECTED') {
+    throw ApiError.badRequest('This application has already been decided and cannot be withdrawn');
+  }
+  await db.query('DELETE FROM applications WHERE id = $1', [applicationId]);
+}
+
 module.exports = {
   applyToJob,
   listMyApplications,
   listApplicationsForJob,
   updateApplicationStatus,
+  withdrawApplication,
 };

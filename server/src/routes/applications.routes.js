@@ -9,6 +9,12 @@ const router = Router();
 router.use(requireAuth);
 
 router.get('/mine', requireRole('CANDIDATE'), applicationsController.listMine);
+router.delete(
+  '/:id',
+  requireRole('CANDIDATE'),
+  validate(idParamSchema, 'params'),
+  applicationsController.withdraw
+);
 router.patch(
   '/:id/status',
   requireRole('HR'),

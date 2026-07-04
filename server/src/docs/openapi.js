@@ -398,6 +398,19 @@ const openapi = {
         },
       },
     },
+    '/applications/{id}': {
+      delete: {
+        tags: ['Applications'],
+        summary: 'Withdraw my application (candidate; only while SUBMITTED/UNDER_REVIEW)',
+        parameters: [idParam],
+        responses: {
+          200: jsonResponse('Withdrawn', { type: 'object' }),
+          400: errorResponse('Application already decided (accepted/rejected)'),
+          403: RESPONSES[403],
+          404: RESPONSES[404],
+        },
+      },
+    },
     '/applications/{id}/status': {
       patch: {
         tags: ['Applications'],
