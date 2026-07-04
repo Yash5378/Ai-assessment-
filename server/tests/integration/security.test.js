@@ -34,6 +34,27 @@ describe('CSRF origin verification', () => {
     expect(response.status).toBe(401);
   });
 
+  it('allows same-origin requests from any host, e.g. a LAN IP (regression)', async () => {
+    db.query.mockResolvedValueOnce({ rows: [] });
+    const response = await request(app)
+      .post('/api/auth/login')
+      .set('Host', '192.168.1.50:3000')
+      .set('Origin', 'http://192.168.1.50:3000')
+      .send({ email: 'ghost@test.com', password: 'Whatever1' });
+
+    expect(response.status).toBe(401); // reached the handler — not blocked as cross-origin
+  });
+
+  it('still blocks when Origin and Host disagree', async () => {
+    const response = await request(app)
+      .post('/api/auth/login')
+      .set('Host', '192.168.1.50:3000')
+      .set('Origin', 'https://evil.example.com')
+      .send({ email: 'admin@test.com', password: 'Admin@1234' });
+
+    expect(response.status).toBe(403);
+  });
+
   it('allows requests without an Origin header (curl, tests)', async () => {
     db.query.mockResolvedValueOnce({ rows: [] });
     const response = await request(app)

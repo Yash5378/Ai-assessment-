@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import SkillChips from './SkillChips';
 import { formatNoticePeriod, formatEmploymentStatus } from '../utils/format';
 
 /**
@@ -58,7 +59,9 @@ export default function ContactModal({ candidate, onClose }) {
           </button>
         </div>
 
-        <dl className="contact-grid">
+        <SkillChips skills={candidate.skills} />
+
+        <dl className="contact-grid" style={{ marginTop: '0.9rem' }}>
           {rows.map(([label, value]) => (
             <div key={label} className="contact-row">
               <dt>{label}</dt>

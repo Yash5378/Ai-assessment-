@@ -684,6 +684,20 @@ input[type='file'].input {
   flex: 1;
 }
 
+/* Text that acts as a link but is semantically a button */
+.link-button {
+  font: inherit;
+  font-weight: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--primary);
+  cursor: pointer;
+}
+.link-button:hover {
+  text-decoration: underline;
+}
+
 /* Notification bell */
 .notif {
   position: relative;

@@ -203,7 +203,15 @@ export default function FindCandidates() {
                   />
                   <div className="card-row candidate-body">
                     <div>
-                      <h3>{candidate.name}</h3>
+                      <h3>
+                        <button
+                          type="button"
+                          className="link-button"
+                          onClick={() => setContact(candidate)}
+                        >
+                          {candidate.name}
+                        </button>
+                      </h3>
                       {candidate.headline && <p className="muted">{candidate.headline}</p>}
                       <p className="card-meta">
                         {candidate.currentCity && <span>{candidate.currentCity}</span>}
