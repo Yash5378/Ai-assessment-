@@ -68,9 +68,11 @@ describe('POST /api/profile/onboarding', () => {
   });
 
   it('completes onboarding and flips onboarded to true', async () => {
-    db.query.mockResolvedValueOnce({
-      rows: [{ userId: 2, phone: '+91 98765 43210', onboarded: true }],
-    });
+    db.query
+      .mockResolvedValueOnce({ rows: [] }) // previous-resume lookup: none
+      .mockResolvedValueOnce({
+        rows: [{ userId: 2, phone: '+91 98765 43210', onboarded: true }],
+      });
 
     const response = await request(app)
       .post('/api/profile/onboarding')
@@ -84,7 +86,7 @@ describe('POST /api/profile/onboarding', () => {
     expect(response.body.profile.onboarded).toBe(true);
 
     // The stored filename is server-generated, not the client-supplied name.
-    const [, values] = db.query.mock.calls[0];
+    const [, values] = db.query.mock.calls[1]; // calls[0] is the previous-resume lookup
     expect(values).toContain('+91 98765 43210');
     expect(values.some((v) => typeof v === 'string' && v.startsWith('candidate-2-'))).toBe(true);
   });

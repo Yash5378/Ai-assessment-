@@ -13,6 +13,7 @@ export default function FindCandidates() {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [candidates, setCandidates] = useState(null);
   const [error, setError] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
   const [contact, setContact] = useState(null);
@@ -69,10 +70,21 @@ export default function FindCandidates() {
     setSelected(allSelected ? new Set() : new Set(candidates.map((c) => c.id)));
   };
 
+  // mailto: URLs have a practical length limit (~2000 chars), so bulk email
+  // is capped rather than silently truncated.
+  const MAX_EMAIL_RECIPIENTS = 40;
+
   // Opens the recruiter's mail client with every selected candidate on BCC,
   // so recipients don't see each other's addresses.
   const emailSelected = () => {
     if (!candidates) return;
+    setActionMessage('');
+    if (selected.size > MAX_EMAIL_RECIPIENTS) {
+      setActionMessage(
+        `Please select at most ${MAX_EMAIL_RECIPIENTS} candidates per email — mail clients reject longer recipient lists.`
+      );
+      return;
+    }
     const emails = candidates
       .filter((c) => selected.has(c.id))
       .map((c) => c.email)
@@ -145,6 +157,7 @@ export default function FindCandidates() {
 
       {candidates && (
         <>
+          <Alert>{actionMessage}</Alert>
           <div className="results-bar">
             <label className="select-all">
               {candidates.length > 0 && (

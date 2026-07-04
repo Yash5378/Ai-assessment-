@@ -9,11 +9,24 @@ const getMine = asyncHandler(async (req, res) => {
   res.json({ profile });
 });
 
+// A replaced resume's old file has no DB reference anymore — remove it from
+// disk so the uploads volume doesn't accumulate orphans. Best-effort.
+const removeReplacedResume = async (previousResume, newFilename) => {
+  if (previousResume && previousResume !== newFilename) {
+    await fs.promises.unlink(resolveUploadPath(previousResume)).catch(() => {});
+  }
+};
+
 const onboard = asyncHandler(async (req, res) => {
   if (!req.file) {
     throw ApiError.badRequest('A resume file is required to complete onboarding');
   }
-  const profile = await profileService.completeOnboarding(req.user.id, req.body, req.file);
+  const { profile, previousResume } = await profileService.completeOnboarding(
+    req.user.id,
+    req.body,
+    req.file
+  );
+  await removeReplacedResume(previousResume, req.file.filename);
   res.status(201).json({ profile });
 });
 
@@ -26,8 +39,9 @@ const uploadResume = asyncHandler(async (req, res) => {
   if (!req.file) {
     throw ApiError.badRequest('A resume file is required');
   }
-  const result = await profileService.setResume(req.user.id, req.file);
-  res.json({ resume: result });
+  const { resume, previousResume } = await profileService.setResume(req.user.id, req.file);
+  await removeReplacedResume(previousResume, req.file.filename);
+  res.json({ resume });
 });
 
 /**

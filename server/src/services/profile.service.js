@@ -43,11 +43,21 @@ async function getMyProfile(userId) {
   return result.rows[0] ?? { userId, ...EMPTY_PROFILE };
 }
 
+// Used to clean up the replaced file from disk after a new upload.
+async function getStoredResumeFilename(userId) {
+  const result = await db.query('SELECT resume_filename FROM candidate_profiles WHERE user_id = $1', [
+    userId,
+  ]);
+  return result.rows[0]?.resume_filename ?? null;
+}
+
 /**
  * Completes onboarding: stores the minimum required info plus the uploaded
  * resume and flips `onboarded` on. Runs once, but is safe to re-run (upsert).
+ * Returns the previous resume filename (if any) so the caller can delete it.
  */
 async function completeOnboarding(userId, data, file) {
+  const previousResume = await getStoredResumeFilename(userId);
   const result = await db.query(
     `INSERT INTO candidate_profiles
        (user_id, phone, current_city, employment_status,
@@ -64,7 +74,7 @@ async function completeOnboarding(userId, data, file) {
      RETURNING ${PROFILE_FIELDS}`,
     [userId, data.phone, data.currentCity, data.employmentStatus, file.filename, file.originalname]
   );
-  return result.rows[0];
+  return { profile: result.rows[0], previousResume };
 }
 
 /**
@@ -115,6 +125,7 @@ async function upsertMyProfile(userId, data) {
 }
 
 async function setResume(userId, file) {
+  const previousResume = await getStoredResumeFilename(userId);
   const result = await db.query(
     `UPDATE candidate_profiles
      SET resume_filename = $2, resume_original_name = $3, updated_at = NOW()
@@ -125,7 +136,7 @@ async function setResume(userId, file) {
   if (result.rows.length === 0) {
     throw ApiError.badRequest('Please complete onboarding before uploading a resume');
   }
-  return result.rows[0];
+  return { resume: result.rows[0], previousResume };
 }
 
 /**

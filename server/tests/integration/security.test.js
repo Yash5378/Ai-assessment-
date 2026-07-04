@@ -72,7 +72,9 @@ describe('resume magic-byte verification', () => {
   });
 
   it('accepts a file with a real PDF signature', async () => {
-    db.query.mockResolvedValueOnce({ rows: [{ userId: 2, onboarded: true }] });
+    db.query
+      .mockResolvedValueOnce({ rows: [] }) // previous-resume lookup
+      .mockResolvedValueOnce({ rows: [{ userId: 2, onboarded: true }] });
 
     const response = await fields(
       request(app).post('/api/profile/onboarding').set('Cookie', asCandidate)
@@ -85,7 +87,9 @@ describe('resume magic-byte verification', () => {
   });
 
   it('accepts a DOCX with a ZIP signature', async () => {
-    db.query.mockResolvedValueOnce({ rows: [{ userId: 2, onboarded: true }] });
+    db.query
+      .mockResolvedValueOnce({ rows: [] }) // previous-resume lookup
+      .mockResolvedValueOnce({ rows: [{ userId: 2, onboarded: true }] });
 
     const response = await fields(
       request(app).post('/api/profile/onboarding').set('Cookie', asCandidate)

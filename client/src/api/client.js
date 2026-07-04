@@ -1,7 +1,38 @@
 /**
  * Minimal fetch wrapper. Normalizes errors into Error objects carrying the
  * HTTP status and any field-level validation details from the backend.
+ * A 401 anywhere except the auth endpoints means the session expired
+ * mid-use — the user is sent back to the login page.
  */
+
+// 401 is an expected outcome on these paths (bad credentials, anonymous
+// session probe), so it must not trigger the expiry redirect.
+const AUTH_PATHS = ['/auth/login', '/auth/me', '/auth/logout'];
+
+function handleExpiredSession(path, status) {
+  if (status === 401 && !AUTH_PATHS.includes(path) && window.location.pathname !== '/login') {
+    window.location.assign('/login');
+  }
+}
+
+async function parseAndThrow(path, response) {
+  let data = null;
+  try {
+    data = await response.json();
+  } catch {
+    // Non-JSON response (e.g. gateway error) — handled below via status.
+  }
+
+  if (!response.ok) {
+    handleExpiredSession(path, response.status);
+    const error = new Error(data?.error || `Request failed (${response.status})`);
+    error.status = response.status;
+    error.details = data?.details;
+    throw error;
+  }
+  return data;
+}
+
 async function request(path, options = {}) {
   const { body, ...rest } = options;
 
@@ -11,22 +42,7 @@ async function request(path, options = {}) {
     body: body ? JSON.stringify(body) : undefined,
     ...rest,
   });
-
-  let data = null;
-  try {
-    data = await response.json();
-  } catch {
-    // Non-JSON response (e.g. gateway error) — handled below via status.
-  }
-
-  if (!response.ok) {
-    const error = new Error(data?.error || `Request failed (${response.status})`);
-    error.status = response.status;
-    error.details = data?.details;
-    throw error;
-  }
-
-  return data;
+  return parseAndThrow(path, response);
 }
 
 /**
@@ -39,21 +55,7 @@ async function upload(path, formData) {
     credentials: 'include',
     body: formData,
   });
-
-  let data = null;
-  try {
-    data = await response.json();
-  } catch {
-    // Non-JSON response — handled via status below.
-  }
-
-  if (!response.ok) {
-    const error = new Error(data?.error || `Request failed (${response.status})`);
-    error.status = response.status;
-    error.details = data?.details;
-    throw error;
-  }
-  return data;
+  return parseAndThrow(path, response);
 }
 
 export const api = {
@@ -61,5 +63,6 @@ export const api = {
   post: (path, body) => request(path, { method: 'POST', body }),
   patch: (path, body) => request(path, { method: 'PATCH', body }),
   put: (path, body) => request(path, { method: 'PUT', body }),
+  delete: (path) => request(path, { method: 'DELETE' }),
   upload,
 };
