@@ -34,8 +34,8 @@ Startup order is health-gated: the API waits for Postgres to be healthy, the UI 
 Prerequisites: Docker (with Docker Compose v2). Nothing else — no local Node.js or Postgres needed.
 
 ```bash
-git clone <your-repo-url>
-cd <project-folder>
+git clone https://github.com/Yash5378/Ai-assessment-.git
+cd Ai-assessment-
 docker compose up --build
 ```
 
