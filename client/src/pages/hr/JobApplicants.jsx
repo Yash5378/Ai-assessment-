@@ -83,6 +83,14 @@ export default function JobApplicants() {
                 </div>
                 <div className="card-actions">
                   <StatusBadge status={application.status} />
+                  {application.hasResume && (
+                    <a
+                      className="btn btn-secondary btn-sm"
+                      href={`/api/candidates/${application.candidateId}/resume`}
+                    >
+                      Resume
+                    </a>
+                  )}
                   <select
                     className="select-inline"
                     value=""

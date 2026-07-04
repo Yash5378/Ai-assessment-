@@ -29,3 +29,21 @@ export function formatExperience(min, max) {
   if (max != null) return `${min ?? 0}–${max} yrs exp`;
   return `${min}+ yrs exp`;
 }
+
+const NOTICE_PERIOD_LABELS = {
+  IMMEDIATE: 'Immediate',
+  '15_DAYS': '15 days',
+  '30_DAYS': '30 days',
+  '60_DAYS': '60 days',
+  '90_DAYS': '90 days',
+};
+
+export const formatNoticePeriod = (value) => NOTICE_PERIOD_LABELS[value] ?? value;
+
+export const formatEmploymentStatus = (value) =>
+  value === 'EXPERIENCED' ? 'Experienced' : 'Fresher';
+
+export const NOTICE_PERIOD_OPTIONS = Object.entries(NOTICE_PERIOD_LABELS).map(([value, label]) => ({
+  value,
+  label,
+}));

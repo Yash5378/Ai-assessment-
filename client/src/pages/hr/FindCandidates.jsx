@@ -126,17 +126,32 @@ export default function FindCandidates() {
                       <h3>{candidate.name}</h3>
                       {candidate.headline && <p className="muted">{candidate.headline}</p>}
                       <p className="card-meta">
-                        {candidate.location && <span>{candidate.location}</span>}
+                        {candidate.currentCity && <span>{candidate.currentCity}</span>}
                         <span>
                           {candidate.experienceYears} yr{candidate.experienceYears === 1 ? '' : 's'} experience
                         </span>
-                        {candidate.expectedSalary != null && (
-                          <span>Expects ₹{candidate.expectedSalary} LPA</span>
+                        {candidate.currentCompany && (
+                          <span>
+                            {candidate.currentDesignation
+                              ? `${candidate.currentDesignation} @ ${candidate.currentCompany}`
+                              : candidate.currentCompany}
+                          </span>
+                        )}
+                        {candidate.expectedCtc != null && (
+                          <span>Expects ₹{candidate.expectedCtc} LPA</span>
                         )}
                       </p>
                       <SkillChips skills={candidate.skills} />
                     </div>
                     <div className="card-actions">
+                      {candidate.hasResume && (
+                        <a
+                          className="btn btn-secondary btn-sm"
+                          href={`/api/candidates/${candidate.id}/resume`}
+                        >
+                          Resume
+                        </a>
+                      )}
                       <a className="btn btn-secondary btn-sm" href={`mailto:${candidate.email}`}>
                         Contact
                       </a>

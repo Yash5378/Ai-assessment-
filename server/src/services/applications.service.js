@@ -63,9 +63,11 @@ async function listApplicationsForJob(user, jobId) {
 
   const result = await db.query(
     `SELECT ${applicationFields('a.')},
-            u.name AS "candidateName", u.email AS "candidateEmail"
+            u.name AS "candidateName", u.email AS "candidateEmail",
+            (p.resume_filename IS NOT NULL) AS "hasResume"
      FROM applications a
      JOIN users u ON u.id = a.candidate_id
+     LEFT JOIN candidate_profiles p ON p.user_id = a.candidate_id
      WHERE a.job_id = $1
      ORDER BY a.created_at DESC`,
     [jobId]
