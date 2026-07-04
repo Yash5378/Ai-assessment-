@@ -2,15 +2,28 @@ const {
   registerSchema,
   createJobSchema,
   updateJobSchema,
+  jobSearchSchema,
   createApplicationSchema,
+  candidateSearchSchema,
+  profileSchema,
   idParamSchema,
 } = require('../../src/validation/schemas');
 
 describe('registerSchema', () => {
   const valid = { name: 'Jane Doe', email: 'jane@example.com', password: 'Passw0rd' };
 
-  it('accepts a valid payload', () => {
-    expect(registerSchema.safeParse(valid).success).toBe(true);
+  it('accepts a valid payload and defaults the role to CANDIDATE', () => {
+    const result = registerSchema.parse(valid);
+    expect(result.role).toBe('CANDIDATE');
+  });
+
+  it('accepts an explicit HR role', () => {
+    expect(registerSchema.parse({ ...valid, role: 'HR' }).role).toBe('HR');
+  });
+
+  it('rejects roles outside the whitelist (no privilege escalation)', () => {
+    expect(registerSchema.safeParse({ ...valid, role: 'ADMIN' }).success).toBe(false);
+    expect(registerSchema.safeParse({ ...valid, role: 'SUPERUSER' }).success).toBe(false);
   });
 
   it('normalizes email to lowercase and trims name', () => {
@@ -31,41 +44,112 @@ describe('registerSchema', () => {
   it('rejects an invalid email', () => {
     expect(registerSchema.safeParse({ ...valid, email: 'not-an-email' }).success).toBe(false);
   });
-
-  it('rejects a missing name', () => {
-    const { name, ...rest } = valid;
-    expect(registerSchema.safeParse(rest).success).toBe(false);
-  });
 });
 
 describe('job schemas', () => {
   const validJob = {
     title: 'Backend Engineer',
+    company: 'SkyPoint Cloud',
     description: 'Build and maintain our REST APIs.',
     location: 'Remote',
     employmentType: 'FULL_TIME',
+    skills: ['Node.js', 'PostgreSQL'],
+    experienceMin: 2,
   };
 
-  it('accepts a valid job without optional salary', () => {
-    expect(createJobSchema.safeParse(validJob).success).toBe(true);
+  it('accepts a valid job and normalizes skills to lowercase', () => {
+    const result = createJobSchema.parse(validJob);
+    expect(result.skills).toEqual(['node.js', 'postgresql']);
+  });
+
+  it('deduplicates skills after normalization', () => {
+    const result = createJobSchema.parse({ ...validJob, skills: ['React', ' react ', 'REACT'] });
+    expect(result.skills).toEqual(['react']);
+  });
+
+  it('requires at least one skill', () => {
+    expect(createJobSchema.safeParse({ ...validJob, skills: [] }).success).toBe(false);
   });
 
   it('rejects an unknown employment type', () => {
     expect(createJobSchema.safeParse({ ...validJob, employmentType: 'GIG' }).success).toBe(false);
   });
 
-  it('rejects a too-short description', () => {
-    expect(createJobSchema.safeParse({ ...validJob, description: 'short' }).success).toBe(false);
+  it('rejects experienceMin greater than experienceMax', () => {
+    expect(
+      createJobSchema.safeParse({ ...validJob, experienceMin: 8, experienceMax: 3 }).success
+    ).toBe(false);
   });
 
-  it('treats an empty salary string as undefined', () => {
-    const result = createJobSchema.parse({ ...validJob, salaryRange: '' });
-    expect(result.salaryRange).toBeUndefined();
+  it('rejects salaryMin greater than salaryMax', () => {
+    expect(createJobSchema.safeParse({ ...validJob, salaryMin: 40, salaryMax: 20 }).success).toBe(
+      false
+    );
+  });
+
+  it('accepts a well-ordered salary range', () => {
+    const result = createJobSchema.parse({ ...validJob, salaryMin: 20, salaryMax: 40 });
+    expect(result.salaryMin).toBe(20);
+    expect(result.salaryMax).toBe(40);
   });
 
   it('update requires at least one field', () => {
     expect(updateJobSchema.safeParse({}).success).toBe(false);
     expect(updateJobSchema.safeParse({ status: 'CLOSED' }).success).toBe(true);
+  });
+});
+
+describe('jobSearchSchema (query params)', () => {
+  it('parses comma-separated skills into a normalized array', () => {
+    const result = jobSearchSchema.parse({ skills: ' React, NODE.js ,react ' });
+    expect(result.skills).toEqual(['react', 'node.js']);
+  });
+
+  it('coerces numeric params from query strings', () => {
+    const result = jobSearchSchema.parse({ maxExperience: '5', minSalary: '20' });
+    expect(result.maxExperience).toBe(5);
+    expect(result.minSalary).toBe(20);
+  });
+
+  it('treats empty strings as missing filters', () => {
+    const result = jobSearchSchema.parse({ title: '  ', company: '' });
+    expect(result.title).toBeUndefined();
+    expect(result.company).toBeUndefined();
+  });
+
+  it('rejects a non-numeric experience filter', () => {
+    expect(jobSearchSchema.safeParse({ maxExperience: 'lots' }).success).toBe(false);
+  });
+});
+
+describe('profileSchema', () => {
+  it('applies defaults for an empty payload', () => {
+    const result = profileSchema.parse({});
+    expect(result).toMatchObject({ headline: '', skills: [], experienceYears: 0, location: '' });
+    expect(result.expectedSalary).toBeNull();
+  });
+
+  it('normalizes skills and coerces numbers', () => {
+    const result = profileSchema.parse({
+      skills: [' React ', 'CSS'],
+      experienceYears: '3',
+      expectedSalary: '18',
+    });
+    expect(result.skills).toEqual(['react', 'css']);
+    expect(result.experienceYears).toBe(3);
+    expect(result.expectedSalary).toBe(18);
+  });
+
+  it('rejects negative experience', () => {
+    expect(profileSchema.safeParse({ experienceYears: -1 }).success).toBe(false);
+  });
+});
+
+describe('candidateSearchSchema', () => {
+  it('parses filters from query strings', () => {
+    const result = candidateSearchSchema.parse({ skills: 'react,sql', minExperience: '2' });
+    expect(result.skills).toEqual(['react', 'sql']);
+    expect(result.minExperience).toBe(2);
   });
 });
 

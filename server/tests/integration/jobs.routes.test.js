@@ -16,9 +16,12 @@ const asCandidate = `token=${signToken({ id: 2, role: 'CANDIDATE' })}`;
 
 const validJob = {
   title: 'Backend Engineer',
+  company: 'SkyPoint Cloud',
   description: 'Design and build our REST APIs with Node.js.',
   location: 'Remote',
   employmentType: 'FULL_TIME',
+  skills: ['node.js', 'postgresql'],
+  experienceMin: 2,
 };
 
 describe('POST /api/jobs (role enforcement)', () => {

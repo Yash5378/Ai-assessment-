@@ -1,6 +1,6 @@
 # Recruitment Portal
 
-A full-stack recruitment platform where **HR** users post job openings and review applicants, while **Candidates** browse open positions, apply with a cover letter, and track their application status through the review pipeline.
+A full-stack recruitment platform where **HR / Recruiters** post job openings, review applicants and search candidates by skill, while **Candidates** publish a skill profile, search jobs (by role, skills, location, experience, salary and company), apply with a cover letter, and track their application status through the review pipeline.
 
 Built as a Claude Code assessment project with a focus on clean architecture, security, validation, and single-command Docker startup.
 
@@ -55,19 +55,21 @@ Seeded automatically on first startup:
 | HR        | `admin@test.com` | `Admin@1234` |
 | Candidate | `user@test.com`  | `User@1234`  |
 
-You can also register new candidate accounts via the UI (HR accounts are provisioned by seeding only, so registration can never escalate privileges).
+You can also register new accounts via the UI — the signup page has **Candidate** and **HR / Recruiter** tabs, so you can create either kind of account. The login page has the same tabs and tells you if you pick the wrong one for your account.
 
 ## Feature Walkthrough
 
-### HR (log in as `admin@test.com`)
+### HR / Recruiter (log in as `admin@test.com` or sign up on the HR tab)
 - **Dashboard** (`/hr`) — live stats: jobs posted, open positions, applications received, awaiting review.
-- **Manage Jobs** (`/hr/jobs`) — post new openings (title, description, location, employment type, optional salary range), edit them, and close/reopen them. HR users can only manage jobs **they** created — jobs posted by other HR users are visible but read-only.
+- **Manage Jobs** (`/hr/jobs`) — post new openings (title, company, location, employment type, required skills, experience range, salary range in ₹ LPA), edit them, and close/reopen them. HR users can only manage jobs **they** created — jobs posted by other HR users are visible but read-only.
+- **Find Candidates** (`/hr/candidates`) — search candidates by **skills**, location and minimum experience; results show their profile and a contact link. (Candidates appear once they publish a profile.)
 - **Applicants** (`/hr/jobs/:id/applicants`) — see every candidate who applied, read their cover letter, and move the application through the pipeline: *Submitted → Under review → Accepted / Rejected*.
 
-### Candidate (log in as `user@test.com` or register)
-- **Browse Jobs** (`/jobs`) — all open positions, with an "Applied" indicator on jobs you already applied to.
-- **Job detail & apply** (`/jobs/:id`) — read the full description and submit a cover-letter application (one application per job, enforced in both API and DB).
+### Candidate (log in as `user@test.com` or sign up on the Candidate tab)
+- **Browse Jobs** (`/jobs`) — search open positions by **role/title, skills, location, company, your experience and minimum salary**, with an "Applied" indicator on jobs you already applied to.
+- **Job detail & apply** (`/jobs/:id`) — full description with skill tags, experience and salary info; submit a cover-letter application (one per job, enforced in both API and DB).
 - **My Applications** (`/my-applications`) — track the live status of every application.
+- **My Profile** (`/profile`) — publish your headline, skills, experience, location and expected salary; this is what recruiters search when finding candidates.
 
 Role-based routing is enforced on both sides: a candidate visiting `/hr` is redirected away, and the API independently rejects any request outside the caller's role (401/403).
 
@@ -78,14 +80,15 @@ Role-based routing is enforced on both sides: a candidate visiting `/hr` is redi
 | Frontend  | React 18, React Router 6, Vite 7 (build), nginx (serving + API proxy) |
 | Backend   | Node.js 20, Express 4, zod (validation), jsonwebtoken, bcryptjs, helmet, express-rate-limit |
 | Database  | PostgreSQL 16 (`pg` driver, parameterized queries, no ORM) |
-| Testing   | Jest + supertest (server), Vitest (client) — 63 tests |
+| Testing   | Jest + supertest (server), Vitest (client) — 81 tests |
 | DevOps    | Docker Compose, multi-stage builds, health-gated startup |
 
 ## Security Highlights
 
 - Passwords hashed with bcrypt; JWT (carrying only user id + role) stored in an **httpOnly SameSite=Lax cookie**, unreadable by JavaScript.
+- Signup role comes from a strict zod enum whitelist (HR or CANDIDATE only) — nothing else can ever be created; the account's stored role is authoritative on every request.
 - Every protected endpoint enforces authentication **and** role; ownership checks stop one HR user from touching another's jobs or applicants.
-- All SQL is parameterized; input is validated with zod on the server and mirrored client-side; request bodies capped at 100 KB.
+- All SQL is parameterized — including every search filter (skills use array-overlap parameters, never string concatenation); input is validated with zod on the server and mirrored client-side; request bodies capped at 100 KB.
 - Login/register are rate-limited; login failures return one generic message (no account enumeration).
 - No secrets in code — everything is environment-driven with development-only defaults; helmet sets standard security headers.
 
@@ -126,7 +129,7 @@ Intentionally scoped out to keep the assessment focused:
 
 - No refresh tokens — sessions simply expire after 24 h and require a fresh login.
 - No password reset / email verification flow (would need an email provider).
-- No pagination — job and applicant lists load fully (fine at assessment scale).
+- No pagination — job, applicant and candidate lists load fully (fine at assessment scale).
 - No file uploads — applications are cover-letter text rather than résumé attachments.
 - Candidates cannot withdraw or edit an application once submitted.
-- HR accounts are seed-provisioned only; there is no admin UI to create more.
+- Recruiter signup is open (anyone may register as HR). In production this would be gated behind company-domain verification or an admin approval step.
