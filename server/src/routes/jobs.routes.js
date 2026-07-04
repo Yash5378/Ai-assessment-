@@ -5,6 +5,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const {
   createJobSchema,
   updateJobSchema,
+  jobSearchSchema,
   createApplicationSchema,
   idParamSchema,
 } = require('../validation/schemas');
@@ -14,7 +15,7 @@ const router = Router();
 // Everything under /jobs requires a session.
 router.use(requireAuth);
 
-router.get('/', jobsController.listJobs);
+router.get('/', validate(jobSearchSchema, 'query'), jobsController.listJobs);
 router.post('/', requireRole('HR'), validate(createJobSchema), jobsController.createJob);
 
 router.get('/:id', validate(idParamSchema, 'params'), jobsController.getJob);

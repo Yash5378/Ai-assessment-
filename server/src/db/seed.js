@@ -10,46 +10,72 @@ const TEST_USERS = [
   { name: 'Test Candidate', email: 'user@test.com', password: 'User@1234', role: 'CANDIDATE' },
 ];
 
+// Gives the seeded candidate a searchable profile so the HR "Find
+// Candidates" feature returns a hit on first run.
+const TEST_CANDIDATE_PROFILE = {
+  headline: 'Frontend developer with a passion for clean UIs',
+  skills: ['react', 'javascript', 'css', 'html'],
+  experienceYears: 3,
+  location: 'Bengaluru, India',
+  expectedSalary: 18,
+};
+
 const SAMPLE_JOBS = [
   {
     title: 'Senior Frontend Engineer',
+    company: 'SkyPoint Cloud',
     description:
       'We are looking for a senior frontend engineer with strong React experience to lead the development of our customer-facing dashboard. You will own component architecture, accessibility, and performance.',
     location: 'Bengaluru, India (Hybrid)',
     employmentType: 'FULL_TIME',
-    salaryRange: '₹25L – ₹40L per year',
+    skills: ['react', 'typescript', 'css', 'accessibility'],
+    experienceMin: 5,
+    experienceMax: 10,
+    salaryMin: 25,
+    salaryMax: 40,
   },
   {
     title: 'Backend Engineer (Node.js)',
+    company: 'SkyPoint Cloud',
     description:
       'Join our platform team to design and build scalable REST APIs with Node.js and PostgreSQL. Experience with Docker, CI/CD pipelines and observability tooling is a strong plus.',
     location: 'Remote (India)',
     employmentType: 'FULL_TIME',
-    salaryRange: '₹20L – ₹32L per year',
+    skills: ['node.js', 'postgresql', 'docker', 'rest'],
+    experienceMin: 3,
+    experienceMax: 8,
+    salaryMin: 20,
+    salaryMax: 32,
   },
   {
     title: 'DevOps Intern',
+    company: 'CloudNine Labs',
     description:
       'A six-month internship on our infrastructure team. You will learn Docker, Kubernetes and infrastructure-as-code while automating our build and deployment pipelines under mentorship.',
     location: 'Hyderabad, India (On-site)',
     employmentType: 'INTERNSHIP',
-    salaryRange: '₹40K – ₹60K per month',
+    skills: ['docker', 'kubernetes', 'linux'],
+    experienceMin: 0,
+    experienceMax: 1,
+    salaryMin: 5,
+    salaryMax: 7,
   },
   {
     title: 'QA Automation Engineer (Contract)',
+    company: 'TestWorks India',
     description:
       'A twelve-month contract role building end-to-end test automation with Playwright and integrating quality gates into our CI pipeline. Strong JavaScript or TypeScript skills required.',
     location: 'Pune, India (Hybrid)',
     employmentType: 'CONTRACT',
-    salaryRange: '₹15L – ₹22L per year',
+    skills: ['playwright', 'javascript', 'ci/cd'],
+    experienceMin: 2,
+    experienceMax: 6,
+    salaryMin: 15,
+    salaryMax: 22,
   },
 ];
 
-/**
- * Seeds test users (always ensured) and sample jobs (only when the jobs
- * table is empty, so restarts never duplicate data).
- */
-async function seed() {
+async function ensureUsers() {
   for (const user of TEST_USERS) {
     const passwordHash = await hashPassword(user.password);
     await pool.query(
@@ -59,23 +85,82 @@ async function seed() {
       [user.name, user.email, passwordHash, user.role]
     );
   }
+}
 
-  const { rows } = await pool.query('SELECT COUNT(*)::int AS count FROM jobs');
-  if (rows[0].count > 0) {
-    return;
-  }
+async function ensureCandidateProfile() {
+  const { rows } = await pool.query('SELECT id FROM users WHERE email = $1', [
+    TEST_USERS[1].email,
+  ]);
+  const profile = TEST_CANDIDATE_PROFILE;
+  await pool.query(
+    `INSERT INTO candidate_profiles
+       (user_id, headline, skills, experience_years, location, expected_salary)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (user_id) DO NOTHING`,
+    [rows[0].id, profile.headline, profile.skills, profile.experienceYears, profile.location, profile.expectedSalary]
+  );
+}
 
+/**
+ * Upserts each sample job by (title, seed HR user): inserts it when missing
+ * and backfills the search fields on rows created before those columns
+ * existed. Jobs posted by real users are never touched.
+ */
+async function ensureSampleJobs() {
   const hrResult = await pool.query('SELECT id FROM users WHERE email = $1', [TEST_USERS[0].email]);
   const hrId = hrResult.rows[0].id;
 
   for (const job of SAMPLE_JOBS) {
-    await pool.query(
-      `INSERT INTO jobs (title, description, location, employment_type, salary_range, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [job.title, job.description, job.location, job.employmentType, job.salaryRange, hrId]
-    );
+    const existing = await pool.query('SELECT id, company FROM jobs WHERE title = $1 AND created_by = $2', [
+      job.title,
+      hrId,
+    ]);
+
+    if (existing.rows.length === 0) {
+      await pool.query(
+        `INSERT INTO jobs
+           (title, company, description, location, employment_type, skills,
+            experience_min, experience_max, salary_min, salary_max, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [
+          job.title,
+          job.company,
+          job.description,
+          job.location,
+          job.employmentType,
+          job.skills,
+          job.experienceMin,
+          job.experienceMax,
+          job.salaryMin,
+          job.salaryMax,
+          hrId,
+        ]
+      );
+    } else if (existing.rows[0].company === '') {
+      // Legacy seed row from before the search fields existed — backfill it.
+      await pool.query(
+        `UPDATE jobs SET company = $1, skills = $2, experience_min = $3,
+                         experience_max = $4, salary_min = $5, salary_max = $6
+         WHERE id = $7`,
+        [
+          job.company,
+          job.skills,
+          job.experienceMin,
+          job.experienceMax,
+          job.salaryMin,
+          job.salaryMax,
+          existing.rows[0].id,
+        ]
+      );
+    }
   }
-  console.log(`Seeded ${TEST_USERS.length} test users and ${SAMPLE_JOBS.length} sample jobs`);
+}
+
+async function seed() {
+  await ensureUsers();
+  await ensureCandidateProfile();
+  await ensureSampleJobs();
+  console.log('Seed data ensured (test users, candidate profile, sample jobs)');
 }
 
 module.exports = { seed };

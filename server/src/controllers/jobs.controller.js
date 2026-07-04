@@ -3,7 +3,7 @@ const applicationsService = require('../services/applications.service');
 const asyncHandler = require('../utils/asyncHandler');
 
 const listJobs = asyncHandler(async (req, res) => {
-  const jobs = await jobsService.listJobs(req.user);
+  const jobs = await jobsService.listJobs(req.user, req.query);
   res.json({ jobs });
 });
 
