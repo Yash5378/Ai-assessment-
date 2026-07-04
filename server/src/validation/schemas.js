@@ -157,11 +157,13 @@ const jobSearchSchema = z.object({
 /* ----------------------------- applications ----------------------------- */
 
 const createApplicationSchema = z.object({
+  // Cover letter is optional; when provided it is capped in length.
   coverLetter: z
-    .string({ required_error: 'Cover letter is required' })
+    .string()
     .trim()
-    .min(20, 'Cover letter must be at least 20 characters')
-    .max(3000, 'Cover letter must be at most 3000 characters'),
+    .max(3000, 'Cover letter must be at most 3000 characters')
+    .optional()
+    .default(''),
 });
 
 const updateApplicationStatusSchema = z.object({

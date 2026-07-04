@@ -4,7 +4,7 @@ import { api } from '../../api/client';
 import Alert from '../../components/Alert';
 import FormField from '../../components/FormField';
 import SkillChips from '../../components/SkillChips';
-import { validateLength, collectErrors } from '../../utils/validation';
+import { collectErrors } from '../../utils/validation';
 import { formatEmploymentType, formatDate, formatSalary, formatExperience } from '../../utils/format';
 
 export default function JobDetail() {
@@ -33,8 +33,10 @@ export default function JobDetail() {
     event.preventDefault();
     setApiError('');
 
+    // Cover letter is optional; only its maximum length is enforced.
     const errors = collectErrors({
-      coverLetter: () => validateLength(coverLetter, 'Cover letter', 20, 3000),
+      coverLetter: () =>
+        coverLetter.trim().length > 3000 ? 'Cover letter must be at most 3000 characters' : '',
     });
     if (errors.coverLetter) {
       setFieldError(errors.coverLetter);
@@ -96,11 +98,11 @@ export default function JobDetail() {
           <form onSubmit={handleSubmit} noValidate>
             <Alert>{apiError}</Alert>
             <FormField
-              label="Cover letter"
+              label="Cover letter (optional)"
               name="coverLetter"
               as="textarea"
               rows={6}
-              placeholder="Tell the hiring team why you are a great fit (20–3000 characters)"
+              placeholder="Optionally tell the hiring team why you are a great fit (up to 3000 characters)"
               value={coverLetter}
               onChange={(event) => {
                 setCoverLetter(event.target.value);

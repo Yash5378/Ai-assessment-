@@ -194,8 +194,13 @@ describe('candidateSearchSchema', () => {
 });
 
 describe('createApplicationSchema', () => {
-  it('rejects a cover letter under 20 characters', () => {
-    expect(createApplicationSchema.safeParse({ coverLetter: 'too short' }).success).toBe(false);
+  it('treats a missing cover letter as an empty string (optional)', () => {
+    const result = createApplicationSchema.parse({});
+    expect(result.coverLetter).toBe('');
+  });
+
+  it('accepts a short cover letter', () => {
+    expect(createApplicationSchema.safeParse({ coverLetter: 'Keen to apply.' }).success).toBe(true);
   });
 
   it('accepts a reasonable cover letter', () => {
@@ -204,6 +209,10 @@ describe('createApplicationSchema', () => {
         coverLetter: 'I am very excited to apply for this position because…',
       }).success
     ).toBe(true);
+  });
+
+  it('still rejects a cover letter over 3000 characters', () => {
+    expect(createApplicationSchema.safeParse({ coverLetter: 'x'.repeat(3001) }).success).toBe(false);
   });
 });
 
