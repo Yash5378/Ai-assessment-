@@ -1,0 +1,132 @@
+# Recruitment Portal
+
+A full-stack recruitment platform where **HR** users post job openings and review applicants, while **Candidates** browse open positions, apply with a cover letter, and track their application status through the review pipeline.
+
+Built as a Claude Code assessment project with a focus on clean architecture, security, validation, and single-command Docker startup.
+
+---
+
+## Architecture
+
+```
+                        ┌─────────────────────────────────────────────────┐
+                        │                 Docker network                  │
+                        │                                                 │
+ Browser ── :3000 ──►   │  ┌───────────┐        ┌───────────┐   ┌──────┐  │
+ http://localhost:3000  │  │  client   │  /api  │  server   │   │  db  │  │
+                        │  │  (nginx)  ├───────►│ (Express) ├──►│ (PG) │  │
+                        │  │ React SPA │ proxy  │  REST API │   │      │  │
+                        │  └───────────┘        └───────────┘   └──┬───┘  │
+                        │                                          │      │
+                        │                                   db_data volume│
+                        └─────────────────────────────────────────────────┘
+```
+
+- **client** — React (Vite) single-page app, served by nginx. nginx also proxies `/api/*` to the backend, so the UI and API share one origin and the httpOnly auth cookie works without any CORS complexity.
+- **server** — Node.js/Express REST API in a layered structure (routes → controllers → services → db). Runs migrations and seeds test data automatically on startup.
+- **db** — PostgreSQL 16 with a named volume for persistence. **Not** exposed to the host: only the API can reach it, and it can never conflict with a Postgres already running on your machine.
+
+Startup order is health-gated: the API waits for Postgres to be healthy, the UI waits for the API to be healthy.
+
+## How to Run
+
+Prerequisites: Docker (with Docker Compose v2). Nothing else — no local Node.js or Postgres needed.
+
+```bash
+git clone <your-repo-url>
+cd <project-folder>
+docker compose up --build
+```
+
+Then open **http://localhost:3000**.
+
+The API is also reachable directly at http://localhost:5000/api (e.g. `/api/health`).
+
+> No `.env` file is required — safe development defaults are baked into `docker-compose.yml`. To override any of them (ports, DB credentials, JWT secret), copy `.env.example` to `.env` and edit it.
+
+To stop: `docker compose down` (data persists). To reset all data: `docker compose down -v`.
+
+## Test Credentials
+
+Seeded automatically on first startup:
+
+| Role      | Email            | Password     |
+| --------- | ---------------- | ------------ |
+| HR        | `admin@test.com` | `Admin@1234` |
+| Candidate | `user@test.com`  | `User@1234`  |
+
+You can also register new candidate accounts via the UI (HR accounts are provisioned by seeding only, so registration can never escalate privileges).
+
+## Feature Walkthrough
+
+### HR (log in as `admin@test.com`)
+- **Dashboard** (`/hr`) — live stats: jobs posted, open positions, applications received, awaiting review.
+- **Manage Jobs** (`/hr/jobs`) — post new openings (title, description, location, employment type, optional salary range), edit them, and close/reopen them. HR users can only manage jobs **they** created — jobs posted by other HR users are visible but read-only.
+- **Applicants** (`/hr/jobs/:id/applicants`) — see every candidate who applied, read their cover letter, and move the application through the pipeline: *Submitted → Under review → Accepted / Rejected*.
+
+### Candidate (log in as `user@test.com` or register)
+- **Browse Jobs** (`/jobs`) — all open positions, with an "Applied" indicator on jobs you already applied to.
+- **Job detail & apply** (`/jobs/:id`) — read the full description and submit a cover-letter application (one application per job, enforced in both API and DB).
+- **My Applications** (`/my-applications`) — track the live status of every application.
+
+Role-based routing is enforced on both sides: a candidate visiting `/hr` is redirected away, and the API independently rejects any request outside the caller's role (401/403).
+
+## Tech Stack
+
+| Layer     | Technology |
+| --------- | ---------- |
+| Frontend  | React 18, React Router 6, Vite 7 (build), nginx (serving + API proxy) |
+| Backend   | Node.js 20, Express 4, zod (validation), jsonwebtoken, bcryptjs, helmet, express-rate-limit |
+| Database  | PostgreSQL 16 (`pg` driver, parameterized queries, no ORM) |
+| Testing   | Jest + supertest (server), Vitest (client) — 63 tests |
+| DevOps    | Docker Compose, multi-stage builds, health-gated startup |
+
+## Security Highlights
+
+- Passwords hashed with bcrypt; JWT (carrying only user id + role) stored in an **httpOnly SameSite=Lax cookie**, unreadable by JavaScript.
+- Every protected endpoint enforces authentication **and** role; ownership checks stop one HR user from touching another's jobs or applicants.
+- All SQL is parameterized; input is validated with zod on the server and mirrored client-side; request bodies capped at 100 KB.
+- Login/register are rate-limited; login failures return one generic message (no account enumeration).
+- No secrets in code — everything is environment-driven with development-only defaults; helmet sets standard security headers.
+
+## Running Tests
+
+```bash
+# Backend (no database needed — the db layer is mocked)
+cd server && npm install && npm test
+
+# Frontend
+cd client && npm install && npm test
+```
+
+## Project Structure
+
+```
+├── docker-compose.yml     # full-stack orchestration (single-command startup)
+├── server/                # Express REST API
+│   └── src/
+│       ├── config/        # single source of environment access
+│       ├── db/            # pg pool, idempotent migrations, seeding
+│       ├── middleware/    # auth (JWT/RBAC), validation, rate limit, errors
+│       ├── validation/    # zod schemas (source of truth for input rules)
+│       ├── routes/ controllers/ services/   # layered API
+│       └── utils/         # ApiError, jwt, password hashing
+└── client/                # React SPA
+    └── src/
+        ├── api/           # fetch wrapper with error normalization
+        ├── context/       # auth session state
+        ├── components/    # shared UI primitives
+        ├── pages/         # candidate/ and hr/ feature pages
+        └── utils/         # client-side validation (mirrors backend)
+```
+
+## Known Limitations
+
+Intentionally scoped out to keep the assessment focused:
+
+- No refresh tokens — sessions simply expire after 24 h and require a fresh login.
+- No password reset / email verification flow (would need an email provider).
+- No pagination — job and applicant lists load fully (fine at assessment scale).
+- No file uploads — applications are cover-letter text rather than résumé attachments.
+- Candidates cannot withdraw or edit an application once submitted.
+- HR accounts are seed-provisioned only; there is no admin UI to create more.
