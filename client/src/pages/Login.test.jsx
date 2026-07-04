@@ -76,8 +76,6 @@ describe('Login page', () => {
     await userEvent.type(screen.getByLabelText('Password'), 'Admin@1234');
     await userEvent.click(screen.getByRole('button', { name: /log in as candidate/i }));
 
-    expect(
-      await screen.findByText(/registered as a HR \/ Recruiter account/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/registered as a HR \/ Recruiter account/i)).toBeInTheDocument();
   });
 });

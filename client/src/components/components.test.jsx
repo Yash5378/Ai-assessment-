@@ -24,10 +24,7 @@ describe('RoleTabs', () => {
     const onChange = vi.fn();
     render(<RoleTabs value="CANDIDATE" onChange={onChange} />);
 
-    expect(screen.getByRole('tab', { name: 'Candidate' })).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(screen.getByRole('tab', { name: 'Candidate' })).toHaveAttribute('aria-selected', 'true');
 
     await userEvent.click(screen.getByRole('tab', { name: 'HR / Recruiter' }));
     expect(onChange).toHaveBeenCalledWith('HR');
@@ -43,7 +40,13 @@ describe('FormField', () => {
 
   it('renders the error message and flags the input as invalid', () => {
     render(
-      <FormField label="Email" name="email" value="" onChange={() => {}} error="Email is required" />
+      <FormField
+        label="Email"
+        name="email"
+        value=""
+        onChange={() => {}}
+        error="Email is required"
+      />
     );
     expect(screen.getByText('Email is required')).toBeInTheDocument();
     expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true');

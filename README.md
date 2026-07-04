@@ -82,13 +82,16 @@ Role-based routing is enforced on both sides: a candidate visiting `/hr` is redi
 | Frontend  | React 18, React Router 6, Vite 7 (build), nginx (serving + API proxy) |
 | Backend   | Node.js 20, Express 4, zod (validation), jsonwebtoken, bcryptjs, helmet, express-rate-limit |
 | Database  | PostgreSQL 16 (`pg` driver, parameterized queries, no ORM) |
-| Testing   | Jest + supertest (server), Vitest (client) — 106 tests |
-| Uploads   | multer (resume upload: PDF/DOC/DOCX, 5 MB cap, server-generated filenames) |
+| Testing   | Jest + supertest (server: 94 mocked + 10 real-PostgreSQL), Vitest + Testing Library (client: 32) — 136 tests |
+| API Docs  | OpenAPI 3 + Swagger UI at `/api/docs` |
+| Uploads   | multer (resume upload: PDF/DOC/DOCX, 5 MB cap, magic-byte content verification, server-generated filenames) |
+| Tooling   | ESLint + Prettier (both apps), GitHub Actions CI (lint, tests incl. real-DB, builds, compose smoke test) |
 | DevOps    | Docker Compose, multi-stage builds, health-gated startup |
 
 ## Security Highlights
 
-- Passwords hashed with bcrypt; JWT (carrying only user id + role) stored in an **httpOnly SameSite=Lax cookie**, unreadable by JavaScript.
+- Passwords hashed with bcrypt; JWT (carrying only user id + role) stored in an **httpOnly SameSite=Lax cookie**, unreadable by JavaScript; a CSRF origin check rejects state-changing requests from foreign origins.
+- Resume uploads are **content-verified with magic bytes** (%PDF / OLE / ZIP signatures) on top of mimetype, extension and 5 MB limits — spoofed files are deleted and rejected.
 - Signup role comes from a strict zod enum whitelist (HR or CANDIDATE only) — nothing else can ever be created; the account's stored role is authoritative on every request.
 - Every protected endpoint enforces authentication **and** role; ownership checks stop one HR user from touching another's jobs or applicants.
 - All SQL is parameterized — including every search filter (skills use array-overlap parameters, never string concatenation); input is validated with zod on the server and mirrored client-side; request bodies capped at 100 KB.
@@ -121,12 +124,21 @@ Full interactive docs live at **`/api/docs`** (Swagger UI). Summary:
 ## Running Tests
 
 ```bash
-# Backend (no database needed — the db layer is mocked)
+# Backend unit + integration (no database needed — the db layer is mocked)
 cd server && npm install && npm test
 
-# Frontend
+# Backend real-database integration flow (10 tests against actual PostgreSQL)
+docker compose -f docker-compose.yml -f docker-compose.test.yml up -d db
+cd server && npm run test:db
+
+# Frontend (validators + component tests via Testing Library)
 cd client && npm install && npm test
+
+# Linting / formatting (both apps)
+npm run lint && npm run format:check
 ```
+
+CI (GitHub Actions) runs all of the above on every push: server lint + 104 tests including the real-PostgreSQL suite against a service container, client lint + tests + build, and a full `docker compose up --build` smoke test that logs in with the seeded HR account.
 
 ## Project Structure
 

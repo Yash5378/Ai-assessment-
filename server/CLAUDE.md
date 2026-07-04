@@ -36,10 +36,18 @@ routes/ → middleware (auth → validate) → controllers/ → services/ → db
 - **Auth:** JWT (id + role only) in an **httpOnly SameSite=Lax cookie**. `signToken`/`verifyToken` in `utils/jwt.js`; bcrypt in `utils/password.js`. Auth responses include an `onboarded` flag (HR always true; candidate from their profile) — the client gates on it.
 - **RBAC:** candidate routes are candidate-only, HR routes HR-only; on top of that, services enforce **ownership** (an HR user only touches jobs they created — see `assertJobOwnership` in `jobs.service.js`).
 - **Skills search** is case-insensitive on both sides: search terms are lowercased in `schemas.js`; stored skills are lowered in SQL via `unnest(...) … lower(skill) = ANY($n)`. Location uses `ILIKE`.
-- **Resumes:** multipart via `middleware/upload.js` (multer, pdf/doc/docx, 5 MB, server-generated filenames → `env.uploadDir`, a Docker volume). Download routes stream with `res.download`; candidate can fetch own, HR any candidate.
+- **Resumes:** multipart via `middleware/upload.js` (multer, pdf/doc/docx, 5 MB, server-generated filenames → `env.uploadDir`, a Docker volume) **plus magic-byte content verification** — files whose bytes don't match the declared type are deleted and rejected. Download routes stream with `res.download`; candidate can fetch own, HR any candidate.
+- **CSRF:** `middleware/verifyOrigin.js` rejects mutating requests bearing a foreign `Origin` header (SameSite=Lax cookie is the first layer).
 - **Migrations must stay idempotent** (run on every boot). Same for `seed.js` — use `ON CONFLICT`; never overwrite real user data (see the backfill CASE logic for the test candidate).
 - **Email to candidates** is client-side `mailto:` — there is **no SMTP** on the server by design (keeps Docker config-free).
 
+## API docs
+
+OpenAPI spec lives in `src/docs/openapi.js` (hand-written object) and is served at `/api/docs` (Swagger UI, CSP relaxed only there) and `/api/docs.json`. **Update it when you add/change endpoints.**
+
 ## Tests
 
-`tests/unit/*` (password, jwt, schemas, auth middleware) and `tests/integration/*` (supertest against `createApp()` with `db/pool` **mocked** — no live DB). `tests/setup.js` points `UPLOAD_DIR` at a temp dir. Run `npm test`. Add cases when you add validation rules, routes, or edge cases (401/403/400/404/409).
+- `tests/unit/*` + `tests/integration/*`: supertest against `createApp()` with `db/pool` **mocked** — run with `npm test`, no DB needed. `tests/setup.js` points `UPLOAD_DIR` at a temp dir.
+- `tests/db/*`: real-PostgreSQL hiring-flow suite, gated by `RUN_DB_TESTS=1`. Run via `npm run test:db` after `docker compose -f docker-compose.yml -f docker-compose.test.yml up -d db` (publishes Postgres on 15432). CI runs it against a service container.
+- `npm run lint` and `npm run format:check` must pass (CI enforces both).
+- Add cases when you add validation rules, routes, or edge cases (401/403/400/404/409); update `src/docs/openapi.js` too.

@@ -48,15 +48,18 @@ describeDb('hiring flow (real PostgreSQL)', () => {
   });
 
   it('HR posts a job', async () => {
-    const response = await request(app).post('/api/jobs').set('Cookie', hrCookie).send({
-      title: 'DB Test Engineer',
-      company: 'DB Test Co',
-      description: 'Integration test role touching a real database.',
-      location: 'Testville',
-      employmentType: 'FULL_TIME',
-      skills: [uniqueSkill],
-      experienceMin: 0,
-    });
+    const response = await request(app)
+      .post('/api/jobs')
+      .set('Cookie', hrCookie)
+      .send({
+        title: 'DB Test Engineer',
+        company: 'DB Test Co',
+        description: 'Integration test role touching a real database.',
+        location: 'Testville',
+        employmentType: 'FULL_TIME',
+        skills: [uniqueSkill],
+        experienceMin: 0,
+      });
     expect(response.status).toBe(201);
     jobId = response.body.job.id;
     expect(response.body.job.skills).toEqual([uniqueSkill]);
@@ -119,9 +122,7 @@ describeDb('hiring flow (real PostgreSQL)', () => {
   });
 
   it('HR sees the applicant and accepts them', async () => {
-    const list = await request(app)
-      .get(`/api/jobs/${jobId}/applications`)
-      .set('Cookie', hrCookie);
+    const list = await request(app).get(`/api/jobs/${jobId}/applications`).set('Cookie', hrCookie);
     expect(list.status).toBe(200);
     expect(list.body.applications).toHaveLength(1);
     expect(list.body.applications[0].hasResume).toBe(true);

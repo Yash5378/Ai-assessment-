@@ -37,5 +37,6 @@ React 18 + React Router 6, built with Vite, served by nginx in Docker. Plain CSS
 
 ## Tests & build
 
-- `utils/validation.test.js` (Vitest) covers the client validators — extend it when you add rules. Run `npm test`.
-- `npm run build` must pass before committing UI changes (it also catches unused imports/JSX errors).
+- Vitest under **jsdom** with Testing Library (`globals: true` + `src/test/setup.js` for jest-dom): `utils/validation.test.js` (validators), `components/components.test.jsx` (StatusBadge, RoleTabs, FormField, SkillChips), `pages/Login.test.jsx` (form validation + wrong-role-tab warning with a fetch stub). Extend these when adding rules/components. Run `npm test`.
+- `npm run lint`, `npm run format:check` and `npm run build` must pass before committing UI changes (CI enforces all three).
+- Shared query-string building lives in `utils/query.js` (`buildQuery`) — reuse it for new filter UIs.

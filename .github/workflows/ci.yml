@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  server:
+    name: Server — lint, unit/integration + real-DB tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: recruiter
+          POSTGRES_PASSWORD: recruiter_dev_password
+          POSTGRES_DB: recruitment_portal
+        ports:
+          - 15432:5432
+        options: >-
+          --health-cmd "pg_isready -U recruiter -d recruitment_portal"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
+      - name: Real-database integration tests
+        run: npm run test:db
+
+  client:
+    name: Client — lint, tests, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run build
+
+  docker:
+    name: Docker — full-stack smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Boot the full stack
+        run: docker compose up --build -d --wait
+      - name: Smoke-test UI, API and seeded login
+        run: |
+          curl -fsS http://localhost:3000/ > /dev/null
+          curl -fsS http://localhost:3000/api/health
+          curl -fsS http://localhost:3000/api/docs.json > /dev/null
+          curl -fsS -X POST http://localhost:3000/api/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"admin@test.com","password":"Admin@1234"}' | grep -q '"role":"HR"'
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
