@@ -143,6 +143,17 @@ describeDb('hiring flow (real PostgreSQL)', () => {
     expect(response.body.applications[0].status).toBe('ACCEPTED');
   });
 
+  it('candidate received a notification about the decision and can mark it read', async () => {
+    const feed = await request(app).get('/api/notifications').set('Cookie', candidateCookie);
+    expect(feed.status).toBe(200);
+    expect(feed.body.unreadCount).toBeGreaterThanOrEqual(1);
+    expect(feed.body.notifications.some((n) => n.message.includes('DB Test Engineer'))).toBe(true);
+
+    await request(app).post('/api/notifications/read').set('Cookie', candidateCookie);
+    const after = await request(app).get('/api/notifications').set('Cookie', candidateCookie);
+    expect(after.body.unreadCount).toBe(0);
+  });
+
   it('HR finds the candidate by skill (case-insensitive) and downloads the resume', async () => {
     const search = await request(app)
       .get(`/api/candidates?skills=${uniqueSkill.toUpperCase()}`)

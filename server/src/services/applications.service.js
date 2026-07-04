@@ -1,6 +1,7 @@
 const db = require('../db/pool');
 const ApiError = require('../utils/ApiError');
 const { assertJobOwnership } = require('./jobs.service');
+const { createNotification } = require('./notifications.service');
 
 // Builds the selected columns with an optional table alias so the same list
 // works in JOIN queries ("a.") and in RETURNING clauses (no alias).
@@ -75,16 +76,29 @@ async function listApplicationsForJob(user, jobId) {
   return result.rows;
 }
 
+const STATUS_LABELS = {
+  UNDER_REVIEW: 'is now under review',
+  ACCEPTED: 'has been accepted — congratulations!',
+  REJECTED: 'was not selected this time',
+};
+
 /**
  * HR moves an application through the review pipeline. Only the owner of
- * the job the application belongs to may do this.
+ * the job the application belongs to may do this. The candidate gets an
+ * in-app notification about the change.
  */
 async function updateApplicationStatus(user, applicationId, status) {
-  const result = await db.query('SELECT job_id FROM applications WHERE id = $1', [applicationId]);
-  if (result.rows.length === 0) {
+  const result = await db.query(
+    `SELECT a.job_id, a.candidate_id, j.title
+     FROM applications a JOIN jobs j ON j.id = a.job_id
+     WHERE a.id = $1`,
+    [applicationId]
+  );
+  const application = result.rows[0];
+  if (!application) {
     throw ApiError.notFound('Application not found');
   }
-  await assertJobOwnership(user, result.rows[0].job_id);
+  await assertJobOwnership(user, application.job_id);
 
   const updated = await db.query(
     `UPDATE applications SET status = $1, updated_at = NOW()
@@ -92,6 +106,12 @@ async function updateApplicationStatus(user, applicationId, status) {
      RETURNING ${applicationFields()}`,
     [status, applicationId]
   );
+
+  await createNotification(
+    application.candidate_id,
+    `Your application for "${application.title}" ${STATUS_LABELS[status]}`
+  );
+
   return updated.rows[0];
 }
 

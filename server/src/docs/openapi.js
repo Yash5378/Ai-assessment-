@@ -559,6 +559,40 @@ const openapi = {
         },
       },
     },
+    '/notifications': {
+      get: {
+        tags: ['Meta'],
+        summary: 'My latest notifications and unread count',
+        responses: {
+          200: jsonResponse('Notification feed', {
+            type: 'object',
+            properties: {
+              notifications: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'integer' },
+                    message: { type: 'string' },
+                    isRead: { type: 'boolean' },
+                    createdAt: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+              unreadCount: { type: 'integer' },
+            },
+          }),
+          401: RESPONSES[401],
+        },
+      },
+    },
+    '/notifications/read': {
+      post: {
+        tags: ['Meta'],
+        summary: 'Mark all my notifications as read',
+        responses: { 200: jsonResponse('Marked read', { type: 'object' }), 401: RESPONSES[401] },
+      },
+    },
     '/stats': {
       get: {
         tags: ['Meta'],

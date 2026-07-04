@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 const CANDIDATE_LINKS = [
   { to: '/jobs', label: 'Browse Jobs' },
@@ -38,6 +39,7 @@ export default function Navbar() {
           ))}
         </nav>
         <div className="navbar-user">
+          <NotificationBell />
           <span className="navbar-username">
             {user.name}{' '}
             <span className={`role-chip role-${user.role.toLowerCase()}`}>{user.role}</span>

@@ -73,6 +73,14 @@ const SCHEMA = `
   ALTER TABLE jobs ADD COLUMN IF NOT EXISTS salary_max INTEGER;
   ALTER TABLE jobs DROP COLUMN IF EXISTS salary_range;
 
+  CREATE TABLE IF NOT EXISTS notifications (
+    id         SERIAL PRIMARY KEY,
+    user_id    INTEGER      NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    message    VARCHAR(300) NOT NULL,
+    is_read    BOOLEAN      NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+  );
+
   -- Upgrade path for candidate_profiles created before onboarding/resume
   -- fields existed (idempotent; CHECKs omitted here since zod validates).
   ALTER TABLE candidate_profiles ADD COLUMN IF NOT EXISTS phone VARCHAR(20) NOT NULL DEFAULT '';
@@ -113,6 +121,7 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_applications_job ON applications(job_id);
   CREATE INDEX IF NOT EXISTS idx_applications_candidate ON applications(candidate_id);
   CREATE INDEX IF NOT EXISTS idx_candidate_profiles_skills ON candidate_profiles USING GIN (skills);
+  CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
 `;
 
 /**

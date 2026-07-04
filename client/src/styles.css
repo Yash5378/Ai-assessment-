@@ -684,6 +684,79 @@ input[type='file'].input {
   flex: 1;
 }
 
+/* Notification bell */
+.notif {
+  position: relative;
+}
+.notif-button {
+  position: relative;
+  font-size: 1.05rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.3rem 0.4rem;
+  border-radius: 8px;
+}
+.notif-button:hover {
+  background: var(--indigo-50);
+}
+.notif-badge {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.notif-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 320px;
+  max-width: 85vw;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 0.85rem 1rem;
+  z-index: 40;
+  animation: fade-in 0.15s ease;
+}
+.notif-title {
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+.notif-empty {
+  margin: 0.25rem 0 0.4rem;
+}
+.notif-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.notif-item {
+  padding: 0.55rem 0.4rem;
+  border-top: 1px solid var(--border);
+}
+.notif-item p {
+  margin: 0 0 0.15rem;
+  font-size: 0.88rem;
+}
+.notif-item.unread {
+  background: var(--indigo-50);
+  border-radius: 8px;
+}
+
 /* Contact modal */
 .modal-backdrop {
   position: fixed;

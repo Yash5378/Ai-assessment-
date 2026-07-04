@@ -7,6 +7,7 @@ const applicationsRoutes = require('./applications.routes');
 const statsRoutes = require('./stats.routes');
 const profileRoutes = require('./profile.routes');
 const candidatesRoutes = require('./candidates.routes');
+const notificationsRoutes = require('./notifications.routes');
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.use('/applications', applicationsRoutes);
 router.use('/stats', statsRoutes);
 router.use('/profile', profileRoutes);
 router.use('/candidates', candidatesRoutes);
+router.use('/notifications', notificationsRoutes);
 
 // Liveness probe used by the Docker healthcheck and the nginx proxy.
 router.get('/health', (req, res) => {
